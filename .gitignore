@@ -3,9 +3,6 @@
 .env.local
 web/.env.local
 
-# Private thesis notes: kept locally, not published
-docs/thesis/
-
 # Python
 __pycache__/
 *.py[cod]
@@ -20,6 +17,33 @@ web/dist/
 # Generated analysis output (the agent writes these at runtime)
 resulting_layout/*.json
 edited_layout.json
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Kept on disk, deliberately not published.
+#
+# These live in the working folder so the full studio record is in one place,
+# but they are too heavy or too private for the repo. Everything under week08/
+# and week09/ below is also committed on the `team_02` branch of the studio repo
+# (github.com/sclebow/AIA26_Studio), so it is recoverable from there. The
+# marketing build frames, the silent video cut and docs/thesis/ exist only here.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Private thesis notes
+docs/thesis/
+
+# Provider bake-off sample renders (~24 MB). The numeric results
+# (results.json, node-bench.json, quality-*.json) stay committed.
+docs/week08/benchmark/*.png
+docs/week09/benchmark/*.png
+
+# reveal.js deck source with embedded clips and full-res shots (~59 MB).
+# The deck itself is committed as week09/deliverables/Sensi-FinalReview-week09.pdf
+docs/week09/deliverables/deck/
+
+# Promo video intermediates and the silent cut (~52 MB).
+# The scored 45s cut stays committed.
+docs/marketing/build/
+docs/marketing/sensi-45s-16x9.mp4
 
 # Editor / OS
 .vscode/

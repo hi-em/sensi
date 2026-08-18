@@ -6,16 +6,20 @@
 > written on their dates: paths they mention (`team_02/python/`, `team_02/web/`) refer to that
 > original layout, not to this repo.
 >
-> Left out of the migration to keep the repository light:
+> Some studio material is kept in the working folder but deliberately not published, because it
+> is too heavy for the repo or too private. See `.gitignore` for the exact list. In short:
 >
 > - `week08/benchmark/*.png` and `week09/benchmark/*.png`, about 24 MB of provider bake-off
 >   sample renders. The numeric results they came from (`results.json`, `node-bench.json`,
->   `quality-pairs.json`, `quality-reveal.json`) are still here.
+>   `quality-pairs.json`, `quality-reveal.json`) are committed.
 > - `week09/deliverables/deck/`, about 59 MB of reveal.js deck source with embedded video
->   clips and full-resolution shots. The deck itself is preserved as
+>   clips and full-resolution shots. The deck itself is committed as
 >   [`Sensi-FinalReview-week09.pdf`](week09/deliverables/Sensi-FinalReview-week09.pdf).
-> - `marketing/build/` and the silent cut of the promo video. The scored 45-second cut is in
->   [`marketing/`](marketing/).
+> - `marketing/build/` and the silent cut of the promo video. The scored 45-second cut is
+>   committed in [`marketing/`](marketing/).
+>
+> Everything in the first two bullets is also committed on the `team_02` branch of the studio
+> repo, so it is recoverable there.
 
 Map of this folder. **Frozen deliverables** are grouped by week; **evergreen reference** docs live in
 `reference/` because they are week-independent.
