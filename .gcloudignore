@@ -1,0 +1,18 @@
+# Upload set for `gcloud run deploy --source .` (Cloud Build). Explicit so the
+# build context is deterministic instead of derived from .gitignore.
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+**/node_modules
+**/dist
+**/__pycache__
+**/*.pyc
+**/.venv
+web/.env.local
+docs
+final-sensi-concept
+layout_input
+resulting_layout
+**/*.mp4

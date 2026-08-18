@@ -24,7 +24,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -46,6 +46,7 @@ from nodes._shared.utils import unwrap_mcp_result, persona_display_label, layout
 from nodes.onboarding.persona_compiler import refine_persona
 from api import contracts
 from api import checkpoints
+from api import rate_limit
 
 # persona.json lives at personas/persona.json (matches the PyQt app).
 _PERSONA_PATH = Path(__file__).resolve().parent.parent.parent / "personas" / "persona.json"
@@ -133,6 +134,8 @@ def _write_persona(persona: dict) -> None:
     """Persist the persona to the same file _read_persona loads. Best-effort: used to
     stamp late-arriving fields (e.g. the moodboard) onto an already-compiled persona so
     they survive a restart / returning-user reload."""
+    if rate_limit.enabled():
+        return  # public demo: persona.json is shared by ALL visitors — keep it read-only
     try:
         _PERSONA_PATH.parent.mkdir(parents=True, exist_ok=True)
         _PERSONA_PATH.write_text(
@@ -218,8 +221,11 @@ def init(req: SessionReq) -> dict:
 
 
 @app.post("/api/message")
-def message(req: MessageReq) -> dict:
+def message(req: MessageReq, request: Request) -> dict:
     """Run one agent turn. Mirrors SensiBridge.sendMessage."""
+    refusal = rate_limit.check("chat", rate_limit.client_ip(request))
+    if refusal:
+        raise HTTPException(status_code=429, detail=refusal)
     sid, slot = _slot(req.session_id)
     msg, new_session = run_agent(req.text, _CTX, slot["session"])
     # Maintain the checkpoint layer on top of the working draft (graph stays untouched).
@@ -271,7 +277,7 @@ def _sse(event: str, data: Any) -> str:
 
 
 @app.post("/api/message/stream")
-def message_stream(req: MessageReq) -> StreamingResponse:
+def message_stream(req: MessageReq, request: Request) -> StreamingResponse:
     """Run one agent turn, streaming progress + the answer as Server-Sent Events.
 
     Events:
@@ -282,6 +288,11 @@ def message_stream(req: MessageReq) -> StreamingResponse:
       result        <agent_response_payload>  — same shape as /api/message
       error         {message}           — the turn failed; UI shows it, keeps input
     """
+    refusal = rate_limit.check("chat", rate_limit.client_ip(request))
+    if refusal:
+        # Same `error` event the UI already renders in the chat — graceful refusal.
+        return StreamingResponse(iter([_sse("error", {"message": refusal})]),
+                                 media_type="text/event-stream")
     sid, slot = _slot(req.session_id)
     q: "queue.Queue[tuple[str, Any]]" = queue.Queue()
 
@@ -385,9 +396,14 @@ def restore_checkpoint(req: RestoreReq) -> dict:
 
 
 @app.post("/api/reset-persona")
-def reset_persona(req: SessionReq) -> dict:
+def reset_persona(req: SessionReq, request: Request) -> dict:
     """Delete persona.json and restart onboarding. Mirrors SensiBridge.resetPersona."""
-    if _PERSONA_PATH.exists():
+    refusal = rate_limit.check("chat", rate_limit.client_ip(request))
+    if refusal:
+        raise HTTPException(status_code=429, detail=refusal)
+    # Public demo: the on-disk persona is shared by all visitors, so a reset only
+    # clears THIS visitor's session — their onboarding then lives in-session only.
+    if not rate_limit.enabled() and _PERSONA_PATH.exists():
         _PERSONA_PATH.unlink()
     sid, slot = _slot(req.session_id)
     slot["session"] = {}
@@ -443,15 +459,29 @@ def _inspire_stream(slot: dict, sid: str, *, text: str, b64s: list,
     return StreamingResponse(gen(), media_type="text/event-stream")
 
 
+def _inspire_refusal(sid: str, refusal: str) -> StreamingResponse:
+    """Refuse an inspire round through the stream's normal `result` event (the UI
+    already renders ok=False results), so a rate-limited round degrades gracefully."""
+    frames = [_sse("session", {"session_id": sid}),
+              _sse("result", {"ok": False, "error": refusal})]
+    return StreamingResponse(iter(frames), media_type="text/event-stream")
+
+
 @app.post("/api/inspire/prepare")
-def inspire_prepare(req: PrepareInspireReq) -> StreamingResponse:
+def inspire_prepare(req: PrepareInspireReq, request: Request) -> StreamingResponse:
     sid, slot = _slot(req.session_id)
+    refusal = rate_limit.check("chat", rate_limit.client_ip(request))
+    if refusal:
+        return _inspire_refusal(sid, refusal)
     return _inspire_stream(slot, sid, text=req.text, b64s=req.b64s, round_num=req.round)
 
 
 @app.post("/api/inspire/refine")
-def inspire_refine(req: RefineInspireReq) -> StreamingResponse:
+def inspire_refine(req: RefineInspireReq, request: Request) -> StreamingResponse:
     sid, slot = _slot(req.session_id)
+    refusal = rate_limit.check("chat", rate_limit.client_ip(request))
+    if refusal:
+        return _inspire_refusal(sid, refusal)
     return _inspire_stream(slot, sid, text="", b64s=[],
                            round_num=req.round, refine_desc=req.refine_desc)
 
@@ -465,7 +495,10 @@ def inspire_picks(req: PicksReq) -> dict:
 
 
 @app.post("/api/inspire/moodboard")
-def inspire_moodboard(req: MoodboardReq) -> dict:
+def inspire_moodboard(req: MoodboardReq, request: Request) -> dict:
+    refusal = rate_limit.check("chat", rate_limit.client_ip(request))
+    if refusal:
+        raise HTTPException(status_code=429, detail=refusal)
     sid, slot = _slot(req.session_id)
     insp = slot["inspire"]
     sess = slot["session"]
@@ -543,6 +576,11 @@ def layout_select(req: LayoutSelectReq) -> dict:
 def layout_upload(req: LayoutUploadReq) -> dict:
     """Upload a custom layout JSON. Saves to randomized_layouts/ and selects it."""
     sid, slot = _slot(req.session_id)
+    # Public demo: uploads land in a folder every visitor shares — cap the size so
+    # strangers can't fill the instance's disk/RAM with junk layouts.
+    if rate_limit.enabled() and len(req.layout_json) > 512 * 1024:
+        return {"session_id": sid, "ok": False,
+                "error": "Layout too large for the demo (512 KB max)."}
     try:
         data = json.loads(req.layout_json)
     except Exception:
@@ -602,8 +640,13 @@ def _room_comfort_scores(scores_json: str, room: dict) -> dict[str, float]:
     return {}
 
 
+class _RateLimited(Exception):
+    """Raised when the demo image gate refuses a generation (message is user-facing)."""
+
+
 def _render_room_image(sess: dict, room: dict, scores: dict, persona: dict,
-                       force: bool = False, furniture: list[dict] | None = None) -> tuple[dict, bool]:
+                       force: bool = False, furniture: list[dict] | None = None,
+                       visitor_ip: str | None = None) -> tuple[dict, bool]:
     """Canonical per-room render — the single source of truth for a room's image.
     Shared by /api/render-room (card) and /api/compare-initial (before/after 'after')
     so the banner render is byte-identical to the room card. Keyed by
@@ -631,6 +674,11 @@ def _render_room_image(sess: dict, room: dict, scores: dict, persona: dict,
         # Re-check inside the lock: a concurrent caller may have just filled the cache.
         if not force and cache_key in _RENDER_CACHE:
             return _RENDER_CACHE[cache_key], True
+        # Gate ONLY actual generations — cache hits above stay free and unlimited.
+        if visitor_ip is not None:
+            refusal = rate_limit.check("image", visitor_ip)
+            if refusal:
+                raise _RateLimited(refusal)
         prompt = build_room_prompt(room, scores, persona, furniture)
         b64 = generate_image(prompt)
         out = {"image_base64": "data:image/png;base64," + b64, "prompt": prompt, "provider": provider}
@@ -639,7 +687,7 @@ def _render_room_image(sess: dict, room: dict, scores: dict, persona: dict,
 
 
 @app.post("/api/render-room")
-def render_room(req: RenderRoomReq) -> dict:
+def render_room(req: RenderRoomReq, request: Request) -> dict:
     """Generate a first-person 'how it feels' render of one room, driven by its
     comfort scores + persona. On-demand (FocusCard button); cached per inputs."""
     sid, slot = _slot(req.session_id)
@@ -667,7 +715,10 @@ def render_room(req: RenderRoomReq) -> dict:
     persona = sess.get("persona_profile") or {}
     try:
         out, cached = _render_room_image(sess, room, scores, persona, req.force,
-                                         furniture=_room_furniture(layout, room))
+                                         furniture=_room_furniture(layout, room),
+                                         visitor_ip=rate_limit.client_ip(request))
+    except _RateLimited as exc:
+        return {"session_id": sid, "ok": False, "error": str(exc)}
     except Exception as exc:
         return {"session_id": sid, "ok": False, "error": f"Image generation failed: {exc}"}
     return {"session_id": sid, "ok": True, "cached": cached, **out}
@@ -919,7 +970,7 @@ def _select_compare_room(sess: dict, persona: dict):
 
 
 @app.post("/api/compare-initial")
-def compare_initial(req: RenderRoomReq) -> dict:
+def compare_initial(req: RenderRoomReq, request: Request) -> dict:
     """Report before/after for the WHOLE editing session: the BIGGEST-GLOW-UP room
     (largest positive overall-score gain) from its INITIAL (on-disk) state → its FINAL
     (current) state, with per-sense deltas and both prompts. The 'after' is the canonical
@@ -946,6 +997,12 @@ def compare_initial(req: RenderRoomReq) -> dict:
     }, sort_keys=True).encode()).hexdigest()
     if not req.force and cache_key in _INITIAL_COMPARE_CACHE:
         return {"session_id": sid, "ok": True, "cached": True, **_INITIAL_COMPARE_CACHE[cache_key]}
+
+    # Cache miss → at least one real generation follows. One gate covers the pair
+    # (the inner _render_room_image call is left ungated to avoid double-counting).
+    refusal = rate_limit.check("image", rate_limit.client_ip(request))
+    if refusal:
+        return {"session_id": sid, "ok": False, "error": refusal}
 
     after_scores = _room_comfort_scores(after_full, room_after)
     before_scores = _room_comfort_scores(before_full, room_before)
@@ -993,14 +1050,19 @@ def compare_initial(req: RenderRoomReq) -> dict:
 
 
 @app.post("/api/refine-persona")
-def refine_persona_endpoint(req: RefinePersonaReq) -> dict:
+def refine_persona_endpoint(req: RefinePersonaReq, request: Request) -> dict:
     """Refine the saved persona from a free-text statement ("I got a dog, and noise
     bothers me more"). Patches the persona, persists it to disk, and updates the
     session — so the change flows into scoring and every response via the persona
     context. Returns the updated persona + a short confirmation."""
+    refusal = rate_limit.check("chat", rate_limit.client_ip(request))
+    if refusal:
+        raise HTTPException(status_code=429, detail=refusal)
     sid, slot = _slot(req.session_id)
     current = slot["session"].get("persona_profile") or _read_persona() or {}
-    updated, message = refine_persona(_CTX.llm_smart, current, req.text, str(_PERSONA_PATH))
+    # Public demo: persona.json is shared across visitors — refine in-session only.
+    out_path = None if rate_limit.enabled() else str(_PERSONA_PATH)
+    updated, message = refine_persona(_CTX.llm_smart, current, req.text, out_path)
     slot["session"]["persona_profile"] = updated
     return {"session_id": sid, "ok": True, "persona": updated, "message": message}
 

@@ -13,11 +13,18 @@ COPY python/requirements.txt ./python/requirements.txt
 RUN pip install --no-cache-dir -r python/requirements.txt
 COPY python/ /app/python/
 COPY personas/ /app/personas/
+# The image ships the curated demo persona (not a developer's personal one), so
+# public visitors land as a returning user with a consistent, instant demo.
+RUN cp /app/personas/persona.maya-demo.json /app/personas/persona.json
 COPY randomized_layouts/ /app/randomized_layouts/
-COPY resulting_layout/ /app/resulting_layout/
+# resulting_layout/ is runtime output only (git-ignored, nothing reads it back) —
+# create it empty rather than copying, so builds work from a clean checkout.
+RUN mkdir -p /app/resulting_layout
 COPY --from=web /web/dist /app/web/dist
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app/python
 EXPOSE 8000
 # LLM credentials must be supplied at runtime, e.g. `docker run --env-file .env ...`
-CMD ["uvicorn", "api.server:app", "--host", "0.0.0.0", "--port", "8000"]
+# Shell form so $PORT (injected by Cloud Run and most PaaS hosts) is honored;
+# falls back to 8000 for local `docker run -p 8000:8000`.
+CMD uvicorn api.server:app --host 0.0.0.0 --port ${PORT:-8000}

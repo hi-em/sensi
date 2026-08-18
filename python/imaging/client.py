@@ -32,7 +32,9 @@ def _require(name: str) -> str:
 def _gemini_image(prompt: str, reference_b64: Optional[str]) -> str:
     """Gemini 'Nano Banana' image generation via REST generateContent."""
     model = os.environ.get("GOOGLE_IMAGE_MODEL", "gemini-2.5-flash-image")
-    api_key = _require("GOOGLE_API_KEY")
+    # GOOGLE_IMAGE_API_KEY lets image billing live on a separate (capped) Google
+    # project while chat stays on a free-tier key — falls back to the chat key.
+    api_key = os.environ.get("GOOGLE_IMAGE_API_KEY") or _require("GOOGLE_API_KEY")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
     parts: list[dict] = [{"text": prompt}]
