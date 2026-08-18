@@ -1,0 +1,29 @@
+# Secrets: never commit
+.env
+.env.local
+web/.env.local
+
+# Private thesis notes: kept locally, not published
+docs/thesis/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Node / frontend build
+node_modules/
+web/dist/
+
+# Generated analysis output (the agent writes these at runtime)
+resulting_layout/*.json
+edited_layout.json
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
