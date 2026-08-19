@@ -252,7 +252,9 @@ def _fetch_unsplash_sensed(queries_with_senses: list, per_query: int = 3,
     urls, descs, sense_tags = [], [], []
     sense_counts: dict = {}
 
-    key = os.getenv("UNSPLASH_ACCESS_KEY", "")
+    # Secret-manager values can arrive with an invisible BOM or trailing newline
+    # (seen in prod 2026-08-19: a BOM-prefixed key broke every request header).
+    key = os.getenv("UNSPLASH_ACCESS_KEY", "").replace("\ufeff", "").strip()
     if not key:
         print("[inspire] UNSPLASH_ACCESS_KEY is not set - serving the curated fallback moodboard.")
         _fill_from_fallback(urls, descs, sense_tags, target, diag, seen=set(exclude_urls or []))
