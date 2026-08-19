@@ -1,62 +1,50 @@
-# Sensi Docs
+# Sensi docs
 
-> **Migration note.** This project began as `team_02/` inside the MaCAD studio repo
-> [sclebow/AIA26_Studio](https://github.com/sclebow/AIA26_Studio) (branch `team_02`). The
-> `week07/`, `week08/` and `week09/` folders are frozen studio-period deliverables, kept as
-> written on their dates: paths they mention (`team_02/python/`, `team_02/web/`) refer to that
-> original layout, not to this repo.
->
-> Some studio material is kept in the working folder but deliberately not published, because it
-> is too heavy for the repo or too private. See `.gitignore` for the exact list. In short:
->
-> - `week08/benchmark/*.png` and `week09/benchmark/*.png`, about 24 MB of provider bake-off
->   sample renders. The numeric results they came from (`results.json`, `node-bench.json`,
->   `quality-pairs.json`, `quality-reveal.json`) are committed.
-> - `week09/deliverables/deck/`, about 59 MB of reveal.js deck source with embedded video
->   clips and full-resolution shots. The deck itself is committed as
->   [`Sensi-FinalReview-week09.pdf`](week09/deliverables/Sensi-FinalReview-week09.pdf).
-> - `marketing/build/` and the silent cut of the promo video. The scored 45-second cut is
->   committed in [`marketing/`](marketing/).
->
-> Everything in the first two bullets is also committed on the `team_02` branch of the studio
-> repo, so it is recoverable there.
-
-Map of this folder. **Frozen deliverables** are grouped by week; **evergreen reference** docs live in
-`reference/` because they are week-independent.
+Documentation for the product. Start with **[configuration.md](configuration.md)** — how
+to configure and run every mode, and what `DEMO_MODE` does.
 
 ```
 docs/
-├── reference/        evergreen concept & research (not tied to a week)
-├── week07/           frozen week-7 deliverables
-├── week08/           CLI + benchmarking
-└── week09/           final review: deck, scripts, PDF (in deliverables/)
+├── configuration.md   env vars, the three run modes, DEMO_MODE
+├── reference/         living product documentation
+└── marketing/         the 45-second walkthrough
 ```
 
-## reference/ — evergreen
-- [concept-the-ripple.md](reference/concept-the-ripple.md) — the core "ripple" concept.
-- [comfort-model-references.md](reference/comfort-model-references.md) — sources behind the comfort model.
-- [adr-relationship-galaxy.md](reference/adr-relationship-galaxy.md) — ADR for the relationship galaxy.
-- [graph-relationships-audit.md](reference/graph-relationships-audit.md) — graph/topology audit.
+## reference/
 
-## week07/ — frozen deliverables
-- [Sensi-Presentation-week07.pdf](week07/Sensi-Presentation-week07.pdf) — the week-7 deck.
-- [presentation-script-week07.md](week07/presentation-script-week07.md) — the week-7 talk script.
+**Concept**
+- [concept-the-ripple.md](reference/concept-the-ripple.md) — the core idea. Comfort is
+  coupled: change one sense and the others move. Everything else serves this.
+- [comfort-model-references.md](reference/comfort-model-references.md) — the published
+  sources behind the comfort model, and which couplings are `verified` versus `inferred`.
 
-## week08/
-- [cli-changes.md](week08/cli-changes.md) — CLI for the orchestrator (faculty notes).
-- [benchmarking-findings.md](week08/benchmarking-findings.md) — per-node model tiering (Gemini FAST/SMART) + rationale.
-- [image-generation-research.md](week08/image-generation-research.md) — deep-research findings (consistency, score-conditioning, edit legibility).
-- [image-output-phase0.md](week08/image-output-phase0.md) — the edit-legible plan: material orbs + ripple, PNG export.
-- [image-output-phase1.md](week08/image-output-phase1.md) — generative per-room "feeling" render (FocusCard), IMAGE_PROVIDER google/openai.
-- [image-output-phase2.md](week08/image-output-phase2.md) — before/after wipe slider + per-sense deltas (historical; the per-edit `/api/compare-room` it describes was later removed — before/after is now always initial → now via `/api/compare-initial`).
-- [image-provider-benchmark.md](week08/image-provider-benchmark.md) — Google vs OpenAI head-to-head (latency/cost/visual); committed to Google. Samples in benchmark/.
-- [edit-checkpoints-interactive.md](week08/edit-checkpoints-interactive.md) — multi-edit (edit_planner→apply_edits), Checkpoints (working draft → commit/restore, Vision = committed), and interactive answers (linkify + bidirectional cross-highlighting).
-- [reference/report-vision-pipeline.md](reference/report-vision-pipeline.md) — current consolidated overview of the Report/Vision (model, prompts, scoring, before/after, exports).
+**Architecture**
+- [report-vision-pipeline.md](reference/report-vision-pipeline.md) — the Report and
+  Vision pipeline end to end: model, prompts, scoring, before/after, exports.
+- [adr-relationship-galaxy.md](reference/adr-relationship-galaxy.md) — ADR-001, the
+  decision behind the 3D explore mode.
+- [graph-relationships-audit.md](reference/graph-relationships-audit.md) — what the model
+  knows about relationships versus what the UI shows.
 
-## week09/ — final review (current)
-- [deliverables/](week09/deliverables/) — the live deck (`deck/index.html`), its PDF export (`Sensi-FinalReview-week09.pdf`, rebuilt with `deck/make-pdf.py`), and the spoken scripts (`presentation-script-week09.md`, `demo-scripts-week09.md`).
-- [models-and-benchmarks.md](week09/models-and-benchmarks.md) — current Gemini 3.x models + refreshed benchmarks; samples in `week09/benchmark/`.
-- `demo-runbook-week09.md`, `narrative-notes.md`, `flow-audit.md` — recording runbook and session working notes.
+**Operating it**
+- [models-and-benchmarks.md](reference/models-and-benchmarks.md) — the FAST/SMART tiering,
+  the current model pins, per-node latency and cost, and the blind A/B method used to
+  prove a model upgrade did not regress reasoning.
+- [cli.md](reference/cli.md) — the headless single-turn interface.
+- [layout-schema.json](reference/layout-schema.json) — the shape a layout JSON must have.
 
-> Convention going forward: each week's **frozen outputs** (decks, scripts, findings) go in a
-> `weekNN/` folder. Evergreen reference material stays in `reference/`.
+The frontend has its own design system doc: [`web/DESIGN_SYSTEM.md`](../web/DESIGN_SYSTEM.md).
+
+---
+
+## Provenance
+
+Sensi began as `team_02/` inside the MaCAD studio repository
+[sclebow/AIA26_Studio](https://github.com/sclebow/AIA26_Studio) (branch `team_02`). That
+branch holds the full studio-period record — weekly decks, presentation scripts, faculty
+notes, session findings and benchmark renders — kept as written on their dates.
+
+Those materials are not republished here. They are frozen course deliverables whose file
+paths refer to the original repository layout, and this repository is the product. The
+engineering content from them that remains true and useful was rewritten into
+`reference/` above, as living documentation rather than dated notes.

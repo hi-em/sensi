@@ -21,29 +21,45 @@ edited_layout.json
 # ─────────────────────────────────────────────────────────────────────────────
 # Kept on disk, deliberately not published.
 #
-# These live in the working folder so the full studio record is in one place,
-# but they are too heavy or too private for the repo. Everything under week08/
-# and week09/ below is also committed on the `team_02` branch of the studio repo
-# (github.com/sclebow/AIA26_Studio), so it is recoverable from there. The
-# marketing build frames, the silent video cut and docs/thesis/ exist only here.
+# This is a product repo. The studio-period record, the private thesis notes and
+# the spent one-shot scripts all live in this working folder so the full history
+# is in one place, but they are not part of what ships.
+#
+# Everything under docs/week07-09/ is also committed on the `team_02` branch of
+# the studio repo (github.com/sclebow/AIA26_Studio), so it is recoverable there.
+# docs/thesis/ and docs/marketing/build/ exist ONLY here — back them up.
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Private thesis notes
+# Frozen studio deliverables: decks, faculty notes, session findings, benchmark
+# renders, screenshots. The evergreen engineering content was rewritten into
+# docs/reference/ (cli.md, models-and-benchmarks.md) and stays published.
+docs/week07/
+docs/week08/
+docs/week09/
+
+# Deck-authoring tooling: a reportlab script and the brand TTFs it embeds.
+# Builds docs/week08/ above, so it goes with it. Fonts are under the SIL OFL.
+docs/build_deck_week08.py
+docs/fonts/
+
+# Private thesis notes (north star, roadmap, drafts).
 docs/thesis/
 
-# Provider bake-off sample renders (~24 MB). The numeric results
-# (results.json, node-bench.json, quality-*.json) stay committed.
-docs/week08/benchmark/*.png
-docs/week09/benchmark/*.png
-
-# reveal.js deck source with embedded clips and full-res shots (~59 MB).
-# The deck itself is committed as week09/deliverables/Sensi-FinalReview-week09.pdf
-docs/week09/deliverables/deck/
-
-# Promo video intermediates and the silent cut (~52 MB).
-# The scored 45s cut stays committed.
+# Promo video intermediates and the silent cut (~52 MB). The scored 45 s cut
+# stays committed as the product's walkthrough.
 docs/marketing/build/
 docs/marketing/sensi-45s-16x9.mp4
+
+# Spent one-shot scripts. Their output is already baked into
+# randomized_layouts/*.json (geometry fixes, furnishing) or into a deck slide
+# that is no longer published (before/after renders). Nothing imports them.
+python/fix_example_layouts.py
+python/furnish_layouts.py
+python/gen_before_after.py
+
+# Real personal personas. personas/persona.json ships as a neutral demo profile;
+# anything named persona.<who>.local.json is private and stays here.
+personas/persona.*.local.json
 
 # Editor / OS
 .vscode/

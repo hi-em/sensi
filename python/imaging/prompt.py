@@ -2,9 +2,9 @@
 imaging/prompt.py — turn a room's comfort scores + persona into a text-to-image
 prompt for a first-person "how it feels to be there" interior render.
 
-Score → prompt mapping follows the deep-research findings (docs/week08/
-image-generation-research.md): each 0-1 sense score drives concrete, visible scene
-qualities (palette, lighting, surfaces, volume, air, materials). Only strong
+Score → prompt mapping follows the imaging research findings: each 0-1 sense
+score drives concrete, visible scene qualities (palette, lighting, surfaces,
+volume, air, materials). Only strong
 signals (clearly low or clearly high) are voiced, so a room's *weak* senses set the
 mood — that's the point: discomfort should be visible.
 """

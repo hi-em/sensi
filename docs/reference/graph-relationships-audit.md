@@ -7,7 +7,7 @@
 > and how to close the gap. On the plan. Interactive. Layered by complexity.
 
 Sources audited: `python/comfort/sense_model.py` (canonical model),
-`docs/comfort-model-references.md` (research provenance),
+`docs/reference/comfort-model-references.md` (research provenance),
 `nodes/insights/topologic_analysis.py`, and the current surfaces
 (`SenseGraph`, `canvas/TopologyLayer`, `canvas/FlowLayer`, `FocusCard`).
 

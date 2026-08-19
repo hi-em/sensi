@@ -79,12 +79,11 @@ Concept boards and the logo are in
 │   ├── _runtime/          config, LLM factory, local tool client
 │   └── requirements.txt
 ├── web/                   React + Vite frontend (builds into web/dist)
-├── docs/                  concept and reference docs, studio deliverables
+├── docs/                  configuration guide + reference documentation
 ├── final-sensi-concept/   concept boards, logo, the one-sentence pitch
-├── personas/              persona.json written by the onboarding flow
+├── personas/              persona.json, rewritten by the onboarding flow
 ├── randomized_layouts/    the source layouts the app reads (read-only input)
 ├── resulting_layout/      analysis output written at runtime (git-ignored)
-├── layout_input/          layout_schema.json, the shape a layout must have
 └── Dockerfile             one-container build (builds web, serves via FastAPI)
 ```
 
@@ -133,7 +132,7 @@ GOOGLE_MODEL_SMART = "gemini-2.5-flash"
 
 The same pattern works for any provider (`OPENAI_MODEL_FAST`, and so on). Rationale
 and the node-to-tier mapping:
-[`docs/week09/models-and-benchmarks.md`](docs/week09/models-and-benchmarks.md).
+[`docs/reference/models-and-benchmarks.md`](docs/reference/models-and-benchmarks.md).
 
 ### Optional: image generation
 
@@ -213,7 +212,7 @@ python main.py --prompt "add a window to the south wall of the living room" --la
 ```
 
 With no flags you get the normal interactive session. Details:
-[`docs/week08/cli-changes.md`](docs/week08/cli-changes.md).
+[`docs/reference/cli.md`](docs/reference/cli.md).
 
 ## Tests
 
@@ -239,13 +238,16 @@ python -m pytest tests/
 
 ## Documentation
 
-- [`docs/reference/concept-the-ripple.md`](docs/reference/concept-the-ripple.md),
-  the core concept behind the scoring and the graph.
+- [`docs/configuration.md`](docs/configuration.md), every environment variable, the three
+  run modes, and what `DEMO_MODE` does. Start here.
+- [`docs/reference/concept-the-ripple.md`](docs/reference/concept-the-ripple.md), the core
+  concept behind the scoring and the graph.
 - [`docs/reference/comfort-model-references.md`](docs/reference/comfort-model-references.md),
   the sources behind the comfort model.
 - [`docs/reference/report-vision-pipeline.md`](docs/reference/report-vision-pipeline.md),
   the Report and Vision pipeline end to end.
-- [`docs/week09/`](docs/week09/), the final review: deck PDF, spoken script, flow
-  audit, narrative notes, and the model benchmarks.
-- [`docs/README.md`](docs/README.md), a map of the rest, including a note on what was
-  left out when this repository was created.
+- [`docs/reference/models-and-benchmarks.md`](docs/reference/models-and-benchmarks.md),
+  model tiering, current pins, per-node cost and latency.
+- [`docs/README.md`](docs/README.md), a map of the rest, plus where the studio-period
+  record lives.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md), how the two of us work on this.

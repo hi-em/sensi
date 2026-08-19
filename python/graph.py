@@ -375,7 +375,7 @@ def _route_after_evaluator(state: AgentState) -> str:
 def build_graph(ctx: Any) -> Any:
     persona_path = str(ctx.layout_input_dir.parent / "personas" / "persona.json")
 
-    # Benchmarking tiers (see docs/week08/benchmarking-findings.md):
+    # Benchmarking tiers (see docs/reference/models-and-benchmarks.md):
     #   ctx.llm_fast  -> routing / classification / short internal text
     #   ctx.llm_smart -> user-facing prose & nuanced persona reasoning
 

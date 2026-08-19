@@ -7,7 +7,8 @@ Two masters, same picture:
 - `sensi-45s-16x9-scored.mp4` — same cut with a **bespoke ambient bed** baked
   in. For LinkedIn / YouTube / X, where the file's own audio is all there is.
 
-Both are cut from the week-9 demo clips (`../week09/deliverables/deck/assets/clips/`).
+Both are cut from screen recordings of the running app. The source clips and the
+build scripts live in the working folder but are not published (see `.gitignore`).
 
 Storyboard: hook card → intro card → full-screen act interstitials between
 onboard (moodboard, persona reveal), shape (scoring, edit glow, checkpoint
@@ -17,6 +18,8 @@ six-sense ring, breathing exactly like `SensiAvatar.jsx` on the site
 (0.14→0.55 opacity, 3 s loop, 0.5 s cascade per ring).
 
 ## Re-cutting
+
+> `build/` is git-ignored — these steps only work in the author's working folder.
 
 Requires Python (with `pillow`) and ffmpeg (`winget install Gyan.FFmpeg`).
 

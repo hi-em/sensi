@@ -48,17 +48,18 @@ A/B-swappable with one `.env` flip:
 
 | Provider | Model (env override) | API |
 |----------|----------------------|-----|
-| **`google`** (default) | `gemini-2.5-flash-image` ("Nano Banana") — `GOOGLE_IMAGE_MODEL` | REST `generateContent`, `responseModalities: ["IMAGE"]` |
+| **`google`** (default) | `gemini-3.1-flash-image` ("Nano Banana 2") — `GOOGLE_IMAGE_MODEL` | REST `generateContent`, `responseModalities: ["IMAGE"]` |
 | `openai` | `gpt-image-1`, quality `medium` — `OPENAI_IMAGE_MODEL` / `OPENAI_IMAGE_QUALITY` | `openai` SDK `images.generate` / `images.edit` |
 
 Image generation does **not** go through `_runtime/llm.py` (that's chat only). For
 before/after pairs, the "before" render is anchored on the "after" image via
 `reference_b64` (Gemini `inlineData` / OpenAI `images.edit`) for visual consistency.
 
-**Benchmark decision:** Google won — ~2.75× faster, slightly cheaper. See
-[`docs/week08/image-provider-benchmark.md`](../week08/image-provider-benchmark.md) and the
-research in [`docs/week08/image-generation-research.md`](../week08/image-generation-research.md).
-Re-run with `python -m imaging.benchmark` from `python/`.
+**Benchmark decision:** Google won a head-to-head against OpenAI on the same three room
+cases — roughly **2.75× faster** and slightly cheaper, at comparable visual quality — which
+is why `IMAGE_PROVIDER` defaults to `google`. Re-run the comparison yourself with
+`python -m imaging.benchmark` from `python/`; see also
+[`models-and-benchmarks.md`](models-and-benchmarks.md).
 
 ## 2. The prompts
 

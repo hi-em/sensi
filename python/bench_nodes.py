@@ -1,7 +1,7 @@
 """
 bench_nodes.py — per-node latency / token / cost benchmark for the Sensi graph.
 
-Closes the open item in docs/week08/benchmarking-findings.md ("cost/latency numbers
+Closes the open item in docs/reference/models-and-benchmarks.md ("cost/latency numbers
 per tier to be captured"). Runs a scripted session that exercises the layout-mode
 LLM nodes, times each node (wall-clock) and snapshots the LLM token counter around
 it (graph.py NODE_TIMINGS, _runtime/llm usage), then aggregates per node:

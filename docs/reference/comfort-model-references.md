@@ -8,7 +8,7 @@ Two internal research passes back this up (adversarially fact-checked, 3-vote):
 - **Run A** — IEQ couplings & aggregation (`wf_f759900a-7ac`): 24 sources, 18/25 claims confirmed.
 - **Run B** — spatial/tactile grounding (stopped early; spatial/tactile rest on standard physics below).
 
-Source of truth in code: [`sense_model.py`](../python/comfort/sense_model.py).
+Source of truth in code: [`sense_model.py`](../../python/comfort/sense_model.py).
 
 ---
 
@@ -67,7 +67,7 @@ Source of truth in code: [`sense_model.py`](../python/comfort/sense_model.py).
 
 ### Room graph = sensory zoning
 - **Claim (R1):** arrange rooms by stimulation level; buffer high-stimulus (kitchen/bath) from low-stimulus (bedroom); design "visually linked but acoustically muted zones" (per-sense connection quality).
-- **Code:** [`topologic_analysis.py`](../python/nodes/insights/topologic_analysis.py) (NetworkX) tags each door-edge with the transmissive senses (acoustic/olfactory/thermal) bleeding across it.
+- **Code:** [`topologic_analysis.py`](../../python/nodes/insights/topologic_analysis.py) (NetworkX) tags each door-edge with the transmissive senses (acoustic/olfactory/thermal) bleeding across it.
 
 ### Tactile material values
 - **Claim (R6):** tactile warmth correlates with effusivity + gloss + hue. Reference table (metal 0.10 … carpet 0.85) matches our `MATERIAL_SCORE` almost exactly.
