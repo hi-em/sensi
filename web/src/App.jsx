@@ -237,10 +237,13 @@ export default function App() {
         // result carries the full payload — finalize panel/turns/checkpoints exactly
         // as the non-streaming path, updating this bubble in place.
         onResult: (data) => routeResponse(data, msgId),
-        onError: (msg) => setMsg((x) => ({
+        // Rate-limit refusals are polite by design — show them as-is, not as failures.
+        onError: (msg, info) => setMsg((x) => ({
           ...x, streaming: false, tokensStarted: true,
-          text: "Something went wrong — " + (msg || "try again") +
-                ". Your message is above; rephrase or resend.",
+          text: info?.kind === "rate_limit"
+            ? msg
+            : "Something went wrong — " + (msg || "try again").replace(/\.+$/, "") +
+              ". Your message is above; rephrase or resend.",
         })),
       }, ctrl.signal);
     } catch (err) {

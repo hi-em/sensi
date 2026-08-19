@@ -1,12 +1,23 @@
 from __future__ import annotations
 import json
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from _runtime.config import load_settings
 from _runtime.local_tool_client import LocalToolClient
 from _runtime.llm import create_chat_llm, get_llm_response_format
+
+# Windows consoles default to a legacy codepage (cp1252): any debug print that
+# carries model text with a character it can't encode (e.g. "→") raises
+# UnicodeEncodeError inside the node and kills the whole turn. Force UTF-8 with
+# replacement so logging can never crash the agent; a no-op on UTF-8 platforms.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 
 
 @dataclass

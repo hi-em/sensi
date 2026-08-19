@@ -236,7 +236,7 @@ export default function LayoutModeScreen({ messages, turns, thinking, persona, u
                 <div className="send-row" style={{ flex: 1 }}>
                   <textarea ref={taRef} className="sensi-input" placeholder="ask sensi about your layout…" value={draft}
                     onChange={e => { setDraft(e.target.value); e.target.style.height = "50px"; e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px"; }}
-                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); streaming ? onStop?.() : send(); } }} />
+                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!streaming) send(); } }} />
                   <button className="btn-send" onClick={() => (streaming ? onStop?.() : send())}
                     title={streaming ? "stop generating" : "send"}>{streaming ? "■" : "→"}</button>
                 </div>

@@ -184,6 +184,16 @@ def _fill_from_fallback(urls: list, descs: list, sense_tags: list,
         descs.append(f"{sense} interior")
         sense_tags.append([sense])
         diag["fallback_used"] = True
+    # Cross-round exclusion can drain the finite pool (offline round 2+): a repeat
+    # from an earlier round beats an empty grid the visitor cannot advance past.
+    if not urls:
+        for url, sense in _FALLBACK_POOL:
+            if len(urls) >= target:
+                break
+            urls.append(url)
+            descs.append(f"{sense} interior")
+            sense_tags.append([sense])
+            diag["fallback_used"] = True
 
 
 # Cross-round result cache: query -> list[(url, desc)]. A cache hit serves images with

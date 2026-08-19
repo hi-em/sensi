@@ -377,7 +377,8 @@ def message_stream(req: MessageReq, request: Request) -> StreamingResponse:
     refusal = rate_limit.check("chat", rate_limit.client_ip(request))
     if refusal:
         # Same `error` event the UI already renders in the chat — graceful refusal.
-        return StreamingResponse(iter([_sse("error", {"message": refusal})]),
+        # `kind` lets the client show the polite limit message as-is, not as a failure.
+        return StreamingResponse(iter([_sse("error", {"message": refusal, "kind": "rate_limit"})]),
                                  media_type="text/event-stream")
     sid, slot = _slot(req.session_id)
     _stamp_auth(slot, request)

@@ -127,7 +127,7 @@ export function sendMessageStream(text, cbs = {}, signal) {
     message_start: () => onMessageStart && onMessageStart(),
     token: (p) => onToken && onToken(p.text),
     result: (p) => { if (p.session_id) setSessionId(p.session_id); onResult && onResult(p); },
-    error: (p) => onError && onError(p.message),
+    error: (p) => onError && onError(p.message, p),
   }, signal);
 }
 

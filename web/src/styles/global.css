@@ -763,6 +763,17 @@ body {
   background: #E8836A; flex-shrink: 0;
   margin-right: 9px;
 }
+/* Narrow phones: the bar must keep its doors (home, layout, profile) on screen —
+   drop the quiet labels and separators, keep the controls. */
+@media (max-width: 520px) {
+  .top-bar { padding: 10px 8px; }
+  .top-bar-pill { padding: 0 14px; }
+  .layout-mode-screen .top-bar { padding: 10px 8px; }
+  .layout-mode-screen .top-bar-sep,
+  .layout-mode-screen .top-bar-section { display: none; }
+  .top-bar-profile-label { display: none; }
+  .top-bar-label { margin-left: 8px; }
+}
 .top-bar-step-text {
   font-family: var(--font-mono);
   font-size: 12px; letter-spacing: .12em;

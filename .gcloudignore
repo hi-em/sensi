@@ -2,6 +2,7 @@
 # build context is deterministic instead of derived from .gitignore.
 .git
 .gitignore
+.claude
 .env
 .env.*
 !.env.example
