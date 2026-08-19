@@ -503,6 +503,44 @@ body {
   margin-top: 20px;
 }
 
+/* ── guest intro — demo-mode first-touch card ── */
+.guest-intro-backdrop {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 900;
+  background: rgba(13,13,13,.88);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-5);
+  animation: guest-intro-fade var(--dur-base) var(--ease-soft);
+}
+@keyframes guest-intro-fade { from { opacity: 0; } to { opacity: 1; } }
+.guest-intro-card {
+  max-width: 420px; width: 100%;
+  background: var(--bg);
+  border: 1px solid rgba(var(--fg-rgb), var(--o-faint));
+  border-radius: var(--r-lg);
+  padding: var(--space-6);
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center;
+}
+.guest-intro-kicker {
+  font-family: var(--font-mono);
+  font-weight: 300; font-size: 11px; letter-spacing: .18em;
+  color: rgba(var(--fg-rgb), .38);
+  margin-top: var(--space-4);
+}
+.guest-intro-title {
+  font-size: 20px; font-weight: 400;
+  color: var(--fg);
+  margin-top: var(--space-2);
+}
+.guest-intro-body {
+  font-size: 13px; line-height: 1.7;
+  color: rgba(var(--fg-rgb), .60);
+  margin-top: var(--space-3);
+}
+
 /* ── shared top bar — floating pill ── */
 .top-bar {
   flex-shrink: 0;

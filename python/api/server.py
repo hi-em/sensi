@@ -209,15 +209,16 @@ def health() -> dict:
 def init(req: SessionReq) -> dict:
     """Initialise a session. Mirrors SensiBridge.initApp."""
     sid, slot = _slot(req.session_id)
+    demo = rate_limit.enabled()
     persona = _read_persona()
     if persona:
         slot["session"] = contracts.session_for_returning_user(persona)
-        payload = contracts.init_payload_from_persona(persona)
+        payload = contracts.init_payload_from_persona(persona, demo=demo)
     else:
         message, new_session = run_agent("", _CTX, {})
         slot["session"] = new_session
         payload = contracts.init_payload_from_greeting(message, new_session)
-    return {"session_id": sid, **payload}
+    return {"session_id": sid, "demo": demo, **payload}
 
 
 @app.post("/api/message")

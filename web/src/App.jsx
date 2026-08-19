@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as api from "./api/client.js";
 import Overlay from "./components/Overlay.jsx";
+import GuestIntro from "./components/GuestIntro.jsx";
 import QuizScreen from "./screens/QuizScreen.jsx";
 import LayoutModeScreen from "./screens/LayoutModeScreen.jsx";
 import InspireScreen from "./screens/InspireScreen.jsx";
@@ -42,6 +43,7 @@ export default function App() {
   const [layoutId, setLayoutId]   = useState(null);
   const [layoutVersion, setLayoutVersion] = useState(0); // bumped after edits to force a plan re-fetch
   const [thinking, setThinking]   = useState(false);
+  const [showGuestIntro, setShowGuestIntro] = useState(false); // demo-only hello card, once per browser
 
   // Quiz
   const [quizMessages, setQuizMessages] = useState([]);
@@ -152,6 +154,9 @@ export default function App() {
           setLayoutId(data.layout_id || null);
           setScreen("chat");
           setChatMessages([{ id: nextId(), role: "s", text: data.message }]);
+          if (data.demo && !localStorage.getItem("sensi_guest_intro_seen")) {
+            setShowGuestIntro(true);
+          }
         } else {
           setScreen("quiz");
           setQuizMessages([{ id: nextId(), role: "s", text: data.message }]);
@@ -297,9 +302,17 @@ export default function App() {
     setScreen("quiz");
   }, []);
 
+  const closeGuestIntro = useCallback(() => {
+    localStorage.setItem("sensi_guest_intro_seen", "1");
+    setShowGuestIntro(false);
+  }, []);
+
   return (
     <>
       <Overlay message={overlay} />
+      {showGuestIntro && screen === "chat" && (
+        <GuestIntro persona={persona} onClose={closeGuestIntro} />
+      )}
 
       {screen === "quiz" && (
         <QuizScreen messages={quizMessages} step={quizStep} thinking={thinking} onSubmit={submitQuiz} />

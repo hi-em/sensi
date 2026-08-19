@@ -15,7 +15,7 @@ COPY python/ /app/python/
 COPY personas/ /app/personas/
 # The image ships the curated demo persona (not a developer's personal one), so
 # public visitors land as a returning user with a consistent, instant demo.
-RUN cp /app/personas/persona.maya-demo.json /app/personas/persona.json
+RUN cp /app/personas/persona.wren-demo.json /app/personas/persona.json
 COPY randomized_layouts/ /app/randomized_layouts/
 # resulting_layout/ is runtime output only (git-ignored, nothing reads it back) —
 # create it empty rather than copying, so builds work from a clean checkout.

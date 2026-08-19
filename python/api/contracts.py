@@ -74,13 +74,23 @@ def agent_response_payload(message: str, sess: dict, final_state: dict | None = 
     }
 
 
-def init_payload_from_persona(persona: dict) -> dict[str, Any]:
+def init_payload_from_persona(persona: dict, demo: bool = False) -> dict[str, Any]:
     name = persona.get("name", "")
-    msg = (
-        f"Welcome back{', ' + name if name else ''}! "
-        "Your comfort profile is loaded. "
-        "Tell me which layout you'd like to explore."
-    )
+    if demo:
+        # Public demo: the visitor has never been here — introduce the shared
+        # guest persona instead of welcoming them "back".
+        who = name or "our guest"
+        msg = (
+            f"Hi — you're exploring Sensi as {who}, today's guest. "
+            f"{who}'s comfort profile is loaded. "
+            "Pick a layout and see how it feels through her senses."
+        )
+    else:
+        msg = (
+            f"Welcome back{', ' + name if name else ''}! "
+            "Your comfort profile is loaded. "
+            "Tell me which layout you'd like to explore."
+        )
     return {
         "screen":      "chat",
         "message":     msg,
