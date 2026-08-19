@@ -4,6 +4,8 @@
 **/*.pyc
 **/.venv
 web/.env.local
+# Personal personas — the image ships the curated demo profile only.
+personas/persona.*.local.json
 # Never ship credentials in the build context (remote builders upload it verbatim).
 .env
 .env.*
@@ -12,5 +14,4 @@ web/.env.local
 .git
 docs
 final-sensi-concept
-layout_input
 **/*.mp4

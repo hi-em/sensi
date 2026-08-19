@@ -11,8 +11,9 @@
 **/*.pyc
 **/.venv
 web/.env.local
+# Personal personas — the image ships the curated demo profile only.
+personas/persona.*.local.json
 docs
 final-sensi-concept
-layout_input
 resulting_layout
 **/*.mp4
