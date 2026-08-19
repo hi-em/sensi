@@ -65,7 +65,13 @@ Rules:
   - "remove / delete / take out [item]" -> remove_furniture (or remove_window / remove_door if a window/door).
   - Use the EXACT room name from the list above when the user names a room; otherwise null.
   - If one room is given for several changes, repeat that room name on each op.
-  - Return an empty ops array if there is no concrete edit to make.
+  - OUT OF SCOPE — never remap to a different op: structural work (demolishing, removing
+    or adding walls, merging/combining rooms, resizing, moving or extending rooms). These
+    are not edits this tool can make; leave them OUT of "ops" entirely.
+  - Only use a furniture_type the item actually is (couch -> sofa, bookcase -> shelf).
+    If the item matches none of the listed types (a lamp, a piano, an appliance), do NOT
+    substitute a different type — leave that op out.
+  - Return an empty ops array if there is no concrete SUPPORTED edit to make.
 
 Return ONLY the JSON object.
 """
@@ -132,9 +138,18 @@ _SURFACE_WORDS  = ("floor", "flooring", "wall", "walls", "ceiling")
 _MATERIAL_VERBS = ("change", "make", "switch", "swap", "replace")
 
 
+_STRUCTURAL_KW = ("demolish", "knock down", "tear down", "bulldoze", "remove the wall",
+                  "remove walls", "remove all the walls", "merge the room", "combine the room")
+
+
 def _heuristic_ops(prompt: str) -> list:
     p = (prompt or "").lower()
     if not p.strip():
+        return []
+    # Structural work (walls, demolition, merging rooms) has no op — bail out so the
+    # request degrades to the honest "couldn't find a concrete change" message instead
+    # of a bait-and-switch material edit ("demolish the walls" must not repaint them).
+    if any(k in p for k in _STRUCTURAL_KW):
         return []
     ops = []
     if any(k in p for k in _REMOVE_KW):
