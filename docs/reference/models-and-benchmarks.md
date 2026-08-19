@@ -27,7 +27,9 @@ clone.
 > `gemini-3.6-flash`) allow only **20 requests/day per project** — about six chat turns —
 > while `gemini-3.5-flash-lite` allows 500/day and 15/min. On an unbilled demo the lite
 > model is the only pin that survives a day of visitors; keep `gemini-3.6-flash` as SMART
-> when running with billing enabled.
+> when running with billing enabled. (`gemini-3.7-flash` shipped by 2026-08-19 and loads —
+> same 20/day free tier, so the same rule applies: billing only, and run the blind A/B
+> before adopting it as the billed SMART default.)
 
 > **On model IDs generally.** A model's training knowledge of model IDs is stale by
 > definition. Every ID adopted here was researched live against official Google sources
