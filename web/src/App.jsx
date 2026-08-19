@@ -37,8 +37,9 @@ function conflictCount(conflicts_json) {
 }
 
 export default function App() {
-  const [screen, setScreen]       = useState("quiz");
+  const [screen, setScreen]       = useState(null); // nothing renders until /api/init routes us
   const [overlay, setOverlay]     = useState("starting sensi...");
+  const [demoMode, setDemoMode]   = useState(false);
   const [persona, setPersona]     = useState(null);
   const [layoutId, setLayoutId]   = useState(null);
   const [layoutVersion, setLayoutVersion] = useState(0); // bumped after edits to force a plan re-fetch
@@ -152,6 +153,7 @@ export default function App() {
       .then((data) => {
         setOverlay(null);
         setUser(data.user || null);
+        setDemoMode(!!data.demo);
         setAuthClientId(data.auth_client_id || "");
         if (data.screen === "chat") {
           if (data.persona) setPersona(data.persona);
@@ -161,13 +163,24 @@ export default function App() {
           if (data.demo && !data.user && localStorage.getItem("sensi_entry_choice") !== "wren") {
             setEntryData(data);
             setScreen("entry");
+            try { history.replaceState({ sensi: "entry" }, ""); } catch { /* sandboxed */ }
           } else {
             setScreen("chat");
             setChatMessages([{ id: nextId(), role: "s", text: data.message }]);
+            try { history.replaceState({ sensi: "chat" }, ""); } catch { /* sandboxed */ }
           }
         } else {
           setScreen("quiz");
-          setQuizMessages([{ id: nextId(), role: "s", text: data.message }]);
+          // Signed in with no persona yet: bridge from the Google click into the
+          // quiz, instead of a bare "who are you?" that ignores the account.
+          if (data.user) {
+            setQuizMessages([{ id: nextId(), role: "s",
+              text: `Welcome, ${data.user.name || "there"}. Let's build your comfort persona: ` +
+                    `seven quick steps, about two minutes, saved to your account. ` +
+                    `First, what should I call you?` }]);
+          } else {
+            setQuizMessages([{ id: nextId(), role: "s", text: data.message }]);
+          }
           setQuizStep(data.quiz_step || 0);
         }
       })
@@ -176,6 +189,17 @@ export default function App() {
         setQuizMessages([{ id: nextId(), role: "s", text: "Could not reach Sensi: " + err.message }]);
         setScreen("quiz");
       });
+  }, []);
+
+  // Browser back/forward walks between the entry page and the shape space, instead
+  // of leaving the site — the two states pushed below are the only ones we own.
+  useEffect(() => {
+    const onPop = (e) => {
+      const s = e.state?.sensi;
+      if (s === "entry" || s === "chat") setScreen(s);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
   }, []);
 
   const submitQuiz = useCallback(async (text) => {
@@ -310,14 +334,57 @@ export default function App() {
     setScreen("quiz");
   }, []);
 
-  // Entry page choices. Guest: remember it and walk into the parked chat payload.
+  // Entry page choices. Guest: remember it and walk into the parked chat payload —
+  // Wren introduces herself as the first bubble (hello card: her line, her board,
+  // a pick-a-layout chip). Returning home and back preserves the running chat.
   // Google: trade the ID token for a session cookie, then reload — /api/init now
   // routes by the signed-in user (their persona, or onboarding if none yet).
   const chooseGuest = useCallback(() => {
     localStorage.setItem("sensi_entry_choice", "wren");
     setScreen("chat");
-    setChatMessages([{ id: nextId(), role: "s", text: entryData?.message || "" }]);
-  }, [entryData]);
+    try { history.pushState({ sensi: "chat" }, ""); } catch { /* sandboxed */ }
+    setChatMessages((m) => m.length ? m : [{
+      id: nextId(), role: "s",
+      text: entryData?.message || "",
+      // The straight cut lands here, so she introduces herself in place: her
+      // line, her board, and the first move as a chip.
+      hello: {
+        name: persona?.name || "Wren",
+        line: `I'm ${persona?.name || "Wren"}. Warmth, soft light, a snug corner over an ` +
+              `open plan: that's my brief. Pick a layout and watch what it does to me.`,
+        board: (persona?.moodboard_urls || []).slice(0, 4),
+      },
+    }]);
+  }, [entryData, persona]);
+
+  // B1: the wordmark walks back to the front door; the chat stays warm underneath.
+  const goHome = useCallback(() => {
+    setScreen("entry");
+    try { history.pushState({ sensi: "entry" }, ""); } catch { /* sandboxed */ }
+  }, []);
+
+  // "create your own persona" (guest drawer) — home, with the you-card called out.
+  const [entryCallout, setEntryCallout] = useState(false);
+  const goCreateOwn = useCallback(() => {
+    setEntryCallout(true);
+    setScreen("entry");
+    try { history.pushState({ sensi: "entry" }, ""); } catch { /* sandboxed */ }
+    setTimeout(() => setEntryCallout(false), 2600);
+  }, []);
+
+  // Signed-in visitors returning from the entry page — no reset, just walk back in.
+  const continueSignedIn = useCallback(() => {
+    setScreen("chat");
+    try { history.pushState({ sensi: "chat" }, ""); } catch { /* sandboxed */ }
+  }, []);
+
+  // Escape hatch on the signed-in quiz: sign out and take the guest door instead.
+  const exploreWrenInstead = useCallback(async () => {
+    try { await api.authLogout(); } catch { /* cookie may already be gone */ }
+    localStorage.setItem("sensi_entry_choice", "wren");
+    api.clearSessionId();
+    window.location.reload();
+  }, []);
 
   const handleGoogleCredential = useCallback(async (credential) => {
     try {
@@ -341,12 +408,15 @@ export default function App() {
       <Overlay message={overlay} />
 
       {screen === "entry" && (
-        <EntryScreen persona={persona} clientId={authClientId}
-          onGuest={chooseGuest} onGoogleCredential={handleGoogleCredential} />
+        <EntryScreen persona={user ? null : persona} clientId={authClientId} user={user}
+          onGuest={chooseGuest} onGoogleCredential={handleGoogleCredential}
+          onContinue={continueSignedIn} callout={entryCallout} />
       )}
 
       {screen === "quiz" && (
-        <QuizScreen messages={quizMessages} step={quizStep} thinking={thinking} onSubmit={submitQuiz} />
+        <QuizScreen messages={quizMessages} step={quizStep} thinking={thinking} onSubmit={submitQuiz}
+          user={user} defaultName={user?.name || ""}
+          onExploreWren={demoMode ? exploreWrenInstead : null} />
       )}
       {screen === "inspire" && (
         <InspireScreen
@@ -375,7 +445,10 @@ export default function App() {
             persona={persona}
             user={user}
             onSignOut={signOut}
-            moodboardUrls={moodboardUrls}
+            onHome={demoMode ? goHome : null}
+            guest={demoMode && !user}
+            onCreateOwn={demoMode && !user ? goCreateOwn : null}
+            moodboardUrls={moodboardUrls.length ? moodboardUrls : (persona?.moodboard_urls || [])}
             onRefinePersona={refinePersona}
             onRedoOnboarding={redoOnboarding}
             layoutId={layoutId}

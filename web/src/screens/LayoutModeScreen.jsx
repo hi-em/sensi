@@ -53,7 +53,7 @@ const LAYER_REQUIRES = { plan: null, comfort: "scores", graph: "topology" };
 const LAYER_RUN_MSG = { comfort: "analyse the layout", graph: "map the topology of the layout" };
 
 export default function LayoutModeScreen({ messages, turns, thinking, persona, user = null,
-  onSignOut, moodboardUrls = [],
+  onSignOut, onHome = null, guest = false, onCreateOwn = null, moodboardUrls = [],
   onRefinePersona, onRedoOnboarding, layoutId, layoutVersion = 0, onSend, onReport,
   streaming = false, onStop,
   checkpoints = [], hasUncommitted = false, uncommittedDelta = {}, liveHead = null, onCommit, onRestore,
@@ -126,7 +126,13 @@ export default function LayoutModeScreen({ messages, turns, thinking, persona, u
     return s;
   }, [activeTurn?.id, viewedTurn]); // eslint-disable-line
   const ringClass     = avg == null ? "" : avg >= 0.65 ? "score-pass" : avg >= 0.45 ? "score-warn" : "score-fail";
-  const initial       = persona?.name?.charAt(0).toUpperCase() || "";
+  // Signed-in state shows at a glance (C2): the Google initial in an accent ring
+  // and the first name as the label; guests keep the quiet persona initial.
+  const initial       = user
+    ? (user.name || user.email || "?").charAt(0).toUpperCase()
+    : (persona?.name?.charAt(0).toUpperCase() || "");
+  const profileLabel  = user ? (user.name || "profile").split(" ")[0].toLowerCase() : "profile";
+  const [pickerSignal, setPickerSignal] = useState(0);
 
   const cursorPos = useRef({ x: 200, y: 200 });
   useEffect(() => {
@@ -193,19 +199,20 @@ export default function LayoutModeScreen({ messages, turns, thinking, persona, u
   return (
     <div className="layout-mode-screen">
 
-      <TopBar wide>
+      <TopBar wide onHome={onHome}>
         <span className="top-bar-sep">|</span>
         <span className="top-bar-act" title="you are shaping & exploring the layout">shape</span>
         <span className="top-bar-sep">|</span>
-        <LayoutPicker layoutId={layoutId} onSelect={(id) => onSend(`load layout ${id}`)} onUpload={(id) => onSend(`analyse layout ${id}`)} />
+        <LayoutPicker layoutId={layoutId} openSignal={pickerSignal} onSelect={(id) => onSend(`load layout ${id}`)} onUpload={(id) => onSend(`analyse layout ${id}`)} />
         <div className="top-bar-status-group">
           {conflicts > 0 && <span className="top-bar-conflict-badge">{conflicts} {conflicts === 1 ? "conflict" : "conflicts"}</span>}
           {avg != null && <span className={"top-bar-score-ring " + ringClass}>{avg.toFixed(2)}</span>}
           {persona && initial && (
             <button className="top-bar-profile-btn" onClick={() => setProfileOpen(true)}
-              aria-label="open your comfort profile" title="your comfort profile — recall it anytime">
-              <span className="top-bar-user-avatar">{initial}</span>
-              <span className="top-bar-profile-label">profile</span>
+              aria-label="open your comfort profile"
+              title={user ? `signed in as ${user.email || user.name}` : "your comfort profile — recall it anytime"}>
+              <span className={"top-bar-user-avatar" + (user ? " top-bar-user-avatar--auth" : "")}>{initial}</span>
+              <span className="top-bar-profile-label">{profileLabel}</span>
             </button>
           )}
         </div>
@@ -222,6 +229,7 @@ export default function LayoutModeScreen({ messages, turns, thinking, persona, u
               transition={{ duration: 0.2, ease: EASE.out }}>
               <ChatThread messages={messages} thinking={thinking}
                 renderMessage={(text) => <InteractiveMessage text={text} rooms={roomNames} />}
+                onHelloCta={() => setPickerSignal((s) => s + 1)}
                 hasUncommitted={hasUncommitted} uncommittedDelta={uncommittedDelta} onCommit={onCommit} />
               <div className="lm-input-area">
                 <button className={"cap-btn" + (capOpen ? " on" : "")} onClick={() => setCapOpen(o => !o)} title="capabilities">⊞</button>
@@ -321,7 +329,10 @@ export default function LayoutModeScreen({ messages, turns, thinking, persona, u
       {spaceInput && <SpaceInput pos={spaceInput} onSend={send} onClose={() => setSpaceInput(null)} />}
       <ProfilePanel persona={persona} moodboardUrls={moodboardUrls} open={profileOpen}
         onClose={() => setProfileOpen(false)} onRefine={onRefinePersona} onRedo={onRedoOnboarding}
-        user={user} onSignOut={onSignOut} />
+        user={user} onSignOut={onSignOut}
+        guest={guest}
+        onGoHome={onHome ? () => { setProfileOpen(false); onHome(); } : null}
+        onCreateOwn={onCreateOwn ? () => { setProfileOpen(false); onCreateOwn(); } : null} />
 
       {galaxyOpen && (
         <ErrorBoundary fallback={(err) => (

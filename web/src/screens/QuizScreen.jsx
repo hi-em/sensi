@@ -4,18 +4,20 @@ import TopBar from "../ui/TopBar.jsx";
 import { STEPS, STEP_LABELS, SI } from "../lib/constants.js";
 
 // ── Per-step input ────────────────────────────────────────────────────────
-function QuizInput({ step, onSubmit }) {
-  const [text, setText] = useState("");
+function QuizInput({ step, onSubmit, defaultName = "" }) {
+  const [text, setText] = useState(step === 0 ? defaultName : "");
   const [role, setRole] = useState(null);
   const [senses, setSenses] = useState([]);
   const [stage, setStage] = useState(null);
   const [living, setLiving] = useState(null);
   const [other, setOther] = useState("");
 
-  // reset transient state when the step changes
+  // reset transient state when the step changes; the name step starts prefilled
+  // from the Google account so a signed-in visitor just presses enter.
   useEffect(() => {
-    setText(""); setRole(null); setSenses([]); setStage(null); setLiving(null); setOther("");
-  }, [step]);
+    setText(step === 0 ? defaultName : "");
+    setRole(null); setSenses([]); setStage(null); setLiving(null); setOther("");
+  }, [step, defaultName]);
 
   if (step === 0) {
     return (
@@ -167,7 +169,8 @@ function QuizInput({ step, onSubmit }) {
   return null;
 }
 
-export default function QuizScreen({ messages, step, thinking, onSubmit }) {
+export default function QuizScreen({ messages, step, thinking, onSubmit,
+  user = null, defaultName = "", onExploreWren = null }) {
   const idx = Math.min(step, STEPS.length - 1);
   const label = STEP_LABELS[STEPS[idx]] || STEPS[idx];
 
@@ -185,8 +188,19 @@ export default function QuizScreen({ messages, step, thinking, onSubmit }) {
 
       <ChatThread messages={messages} thinking={thinking} />
 
+      {user && (
+        <div className="quiz-auth-row">
+          <span className="quiz-auth-chip">signed in as {user.email || user.name} ✓</span>
+          {onExploreWren && (
+            <button className="quiz-auth-escape" onClick={onExploreWren}>
+              or sign out &amp; explore as Wren first
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="input-area">
-        {!thinking && <QuizInput step={step} onSubmit={onSubmit} />}
+        {!thinking && <QuizInput step={step} onSubmit={onSubmit} defaultName={defaultName} />}
       </div>
     </div>
   );

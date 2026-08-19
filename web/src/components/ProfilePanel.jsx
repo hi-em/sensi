@@ -6,8 +6,11 @@ import PersonaCard from "./PersonaCard.jsx";
 // you shape. Renders the full PersonaCard (identity, priorities, spectrum, aesthetic,
 // honest math), and lets you REFINE it by telling Sensi what changed (it patches the
 // relevant bits — household/pets flow straight into scoring) or redo onboarding.
+// In guest mode (the shared read-only Wren persona) refine and redo make no sense —
+// nothing a guest writes can persist — so the drawer offers the two honest doors
+// instead: back to home, and create a persona of your own.
 export default function ProfilePanel({ persona, moodboardUrls = [], open, onClose, onRefine, onRedo,
-  user = null, onSignOut }) {
+  user = null, onSignOut, guest = false, onGoHome, onCreateOwn }) {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -43,7 +46,20 @@ export default function ProfilePanel({ persona, moodboardUrls = [], open, onClos
       <div className="panel-scroll">
         <PersonaCard persona={persona} moodboardUrls={moodboardUrls} compact />
 
-        {onRefine && (
+        {guest && (
+          <div className="panel-guest">
+            <p className="panel-guest-note">
+              {persona?.name || "Wren"} is the shared guest persona: read-only, the
+              same for every visitor. To refine a profile, make one of your own.
+            </p>
+            <button className="panel-redo" onClick={onGoHome}>back to home</button>
+            <button className="panel-redo panel-redo--accent" onClick={onCreateOwn}>
+              create your own persona
+            </button>
+          </div>
+        )}
+
+        {!guest && onRefine && (
           <div className="panel-refine">
             <div className="persona-section-label">refine</div>
             <p className="panel-refine-hint">tell Sensi what changed — it updates the rest for you.</p>
@@ -61,7 +77,7 @@ export default function ProfilePanel({ persona, moodboardUrls = [], open, onClos
           </div>
         )}
 
-        {onRedo && (
+        {!guest && onRedo && (
           <button className="panel-redo" onClick={onRedo}>start over · redo onboarding</button>
         )}
 

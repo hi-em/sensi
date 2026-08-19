@@ -8,7 +8,7 @@ import CommitBar from "../components/CommitBar.jsx";
 // auto-scrolls to the bottom. Pass `format` (e.g. formatChatMessage) to render
 // Sensi text as HTML; omit it for plain text. The commit-* props are optional —
 // only the layout chat passes them, so quiz/profile threads are unaffected.
-export default function ChatThread({ messages, thinking, format, renderMessage, hasUncommitted, uncommittedDelta, onCommit }) {
+export default function ChatThread({ messages, thinking, format, renderMessage, onHelloCta, hasUncommitted, uncommittedDelta, onCommit }) {
   const ref = useRef(null);
   useEffect(() => {
     const t = setTimeout(() => { if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, 50);
@@ -25,11 +25,29 @@ export default function ChatThread({ messages, thinking, format, renderMessage, 
           m.role === "s" ? (
             <div className="bubble-wrap" key={m.id}>
               {m.id === lastSensiId && !thinking ? <SensiAvatar size={28} /> : <div className="sensi-avatar-static" />}
-              <div className="bubble-s">
-                {renderMessage ? renderMessage(m.text)
-                  : format ? <div dangerouslySetInnerHTML={{ __html: format(m.text) }} />
-                  : m.text}
-              </div>
+              {m.hello ? (
+                <div className="bubble-s bubble-hello">
+                  <div className="hello-head">
+                    <span className="hello-avatar">{m.hello.name.charAt(0).toUpperCase()}</span>
+                    <span className="hello-name">{m.hello.name}</span>
+                  </div>
+                  <p className="hello-line">{m.hello.line}</p>
+                  {m.hello.board?.length > 0 && (
+                    <div className="hello-board">
+                      {m.hello.board.map((u) => <img key={u} src={u} alt="" loading="lazy" />)}
+                    </div>
+                  )}
+                  {onHelloCta && (
+                    <button className="hello-cta" onClick={onHelloCta}>pick a layout →</button>
+                  )}
+                </div>
+              ) : (
+                <div className="bubble-s">
+                  {renderMessage ? renderMessage(m.text)
+                    : format ? <div dangerouslySetInnerHTML={{ __html: format(m.text) }} />
+                    : m.text}
+                </div>
+              )}
             </div>
           ) : (
             <div className="bubble-u" key={m.id}>{m.text}</div>

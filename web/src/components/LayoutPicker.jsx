@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as api from "../api/client.js";
 
 export const EXAMPLE_LAYOUTS = [
@@ -8,10 +8,13 @@ export const EXAMPLE_LAYOUTS = [
   { id: "204", name: "Garden House",    subtitle: "Multi-Zone Flanking · 13 rooms" },
 ];
 
-export default function LayoutPicker({ layoutId, onSelect, onUpload }) {
+export default function LayoutPicker({ layoutId, onSelect, onUpload, openSignal = 0 }) {
   const [open, setOpen]         = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef(null);
+
+  // A bump on openSignal opens the dropdown from outside (Wren's hello chip).
+  useEffect(() => { if (openSignal) setOpen(true); }, [openSignal]);
 
   const current = EXAMPLE_LAYOUTS.find((l) => String(layoutId).includes(l.id));
 
