@@ -298,15 +298,17 @@ export default function App() {
       setLayoutVersion((v) => v + 1); // working draft changed → re-fetch the canvas
       setChatMessages((m) => [...m, { id: nextId(), role: "s",
         text: `Restored to "${d.restored_label}" — the canvas now shows that checkpoint.` }]);
-      if (d.scores_json) {
-        setTurns((prev) => [...prev, {
-          id: nextId(), action: "restore", label: `restored: ${d.restored_label}`,
-          scores_json: d.scores_json || "", conflicts_json: d.conflicts_json || "",
-          suggestions_json: d.suggestions_json || "", layout_diff: {}, layout_diffs: [],
-          avgScore: avgScore(d.scores_json), conflictCount: conflictCount(d.conflicts_json),
-          timestamp: Date.now(),
-        }]);
-      }
+      // Always append the restore turn — even when the checkpoint carries no scores
+      // (layout loaded → edited → restored, no analysis in between). The new turn is
+      // what clears the previous edit's focus glow and score panel; skipping it left
+      // the canvas contradicting the "restored" message.
+      setTurns((prev) => [...prev, {
+        id: nextId(), action: "restore", label: `restored: ${d.restored_label}`,
+        scores_json: d.scores_json || "", conflicts_json: d.conflicts_json || "",
+        suggestions_json: d.suggestions_json || "", layout_diff: {}, layout_diffs: [],
+        avgScore: avgScore(d.scores_json), conflictCount: conflictCount(d.conflicts_json),
+        timestamp: Date.now(),
+      }]);
     } catch { /* ignore */ }
   }, []);
 
