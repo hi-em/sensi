@@ -18,9 +18,16 @@ Benchmarking tiers -> FAST: <id> | SMART: <id>
 | 🔵 SMART | `GOOGLE_MODEL_SMART` | `gemini-3.6-flash` |
 | 🖼️ IMAGE | `GOOGLE_IMAGE_MODEL` | `gemini-3.1-flash-image` (Nano Banana 2) |
 
-These are the IDs the [public demo](https://sensi.emiliechidiac.com) runs on. They are
-pinned deliberately: the **Gemini 2.0 family was retired** (2026-06-01) and the **2.5
-family is no longer served to new projects**, so an older pin will fail for a fresh clone.
+They are pinned deliberately: the **Gemini 2.0 family was retired** (2026-06-01) and the
+**2.5 family is no longer served to new projects**, so an older pin will fail for a fresh
+clone.
+
+> **The public demo overrides SMART to `gemini-3.5-flash-lite`** (2026-08-19). The Gemini
+> free tier is per-model, and the non-lite flash models (`gemini-3.5-flash`,
+> `gemini-3.6-flash`) allow only **20 requests/day per project** — about six chat turns —
+> while `gemini-3.5-flash-lite` allows 500/day and 15/min. On an unbilled demo the lite
+> model is the only pin that survives a day of visitors; keep `gemini-3.6-flash` as SMART
+> when running with billing enabled.
 
 > **On model IDs generally.** A model's training knowledge of model IDs is stale by
 > definition. Every ID adopted here was researched live against official Google sources

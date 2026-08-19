@@ -1,11 +1,13 @@
 """
 rate_limit.py — demo-mode abuse guard for the public deployment.
 
-The public demo runs on free/capped provider quotas (Gemini free tier is roughly
-15 requests/min and ~1k requests/day project-wide; image generation is real money
-at ~$0.04/image). These limits exist so a burst of strangers from a LinkedIn post
-degrades into polite "try again in a minute" messages instead of eating the whole
-daily quota — or the image budget — in one spike.
+The public demo runs on free/capped provider quotas (the Gemini free tier is
+per-model: gemini-3.5-flash-lite allows 15 requests/min and 500/day per project,
+measured 2026-08-19; image generation is real money at ~$0.04/image). These
+limits exist so a burst of strangers from a LinkedIn post degrades into polite
+"try again in a minute" messages instead of eating the whole daily quota — or
+the image budget — in one spike. One chat turn fans out into roughly 3 provider
+calls, so the daily turn budgets below sit at ~/3 of the provider's request cap.
 
 Every check is a no-op unless DEMO_MODE is truthy, so local development and the
 desktop workflow are completely unaffected.
@@ -32,8 +34,8 @@ from collections import defaultdict, deque
 # Per scope: [(window_seconds, allowance), ...] — every window must have room.
 _SCOPES: dict[str, dict] = {
     "chat": {
-        "per_ip": [(60, 6), (86400, 80)],
-        "global": [(60, 8), (86400, 300)],
+        "per_ip": [(60, 6), (86400, 40)],
+        "global": [(60, 8), (86400, 150)],
         "message": ("The demo is at its usage limit right now — "
                     "please wait a minute and try again."),
     },

@@ -305,6 +305,23 @@ def auth_logout(req: SessionReq, request: Request) -> dict:
     return {"ok": True}
 
 
+def _friendly_llm_error(exc: Exception) -> tuple[str, Optional[str]]:
+    """Map a provider error to the demo's polite register. The Gemini free tier
+    enforces per-model quotas (requests/min and requests/day); when one trips, the
+    client library raises with the raw provider JSON in the message — which must
+    never reach the chat verbatim. Returns (message, kind): kind "rate_limit" tells
+    the client to render the message as-is rather than as a failure."""
+    s = str(exc)
+    if "429" in s or "RESOURCE_EXHAUSTED" in s or "rate limit" in s.lower():
+        if "PerDay" in s or "per day" in s.lower():
+            return ("The demo has used up today's free AI quota — it refills once a day. "
+                    "Everything already on the canvas stays explorable; please come back "
+                    "tomorrow for more turns.", "rate_limit")
+        return ("The AI service is briefly rate-limited — please wait a minute and "
+                "try again.", "rate_limit")
+    return (s, None)
+
+
 @app.post("/api/message")
 def message(req: MessageReq, request: Request) -> dict:
     """Run one agent turn. Mirrors SensiBridge.sendMessage."""
@@ -313,7 +330,13 @@ def message(req: MessageReq, request: Request) -> dict:
         raise HTTPException(status_code=429, detail=refusal)
     sid, slot = _slot(req.session_id)
     _stamp_auth(slot, request)
-    msg, new_session = run_agent(req.text, _CTX, slot["session"])
+    try:
+        msg, new_session = run_agent(req.text, _CTX, slot["session"])
+    except Exception as exc:
+        friendly, kind = _friendly_llm_error(exc)
+        if kind == "rate_limit":
+            raise HTTPException(status_code=429, detail=friendly)
+        raise
     # Maintain the checkpoint layer on top of the working draft (graph stays untouched).
     _orig = _original_layout(new_session)
     checkpoints.sync(new_session,
@@ -404,7 +427,7 @@ def message_stream(req: MessageReq, request: Request) -> StreamingResponse:
         except Exception as exc:  # a node raised — report, don't hang the client
             import traceback
             traceback.print_exc()
-            q.put(("error", str(exc)))
+            q.put(("error", _friendly_llm_error(exc)))
 
     threading.Thread(target=worker, daemon=True).start()
 
@@ -426,7 +449,11 @@ def message_stream(req: MessageReq, request: Request) -> StreamingResponse:
                 yield _sse("result", payload)
                 break
             elif kind == "error":
-                yield _sse("error", {"message": payload})
+                message_text, err_kind = payload
+                data = {"message": message_text}
+                if err_kind:
+                    data["kind"] = err_kind
+                yield _sse("error", data)
                 break
 
     return StreamingResponse(gen(), media_type="text/event-stream")

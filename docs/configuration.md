@@ -109,14 +109,18 @@ desktop workflow are entirely unaffected.
 When it *is* on, it does two things — see [`python/api/rate_limit.py`](../python/api/rate_limit.py):
 
 **1. Rate limits, sized to free provider quotas** rather than to hoped-for traffic. The
-Gemini free tier is roughly 15 requests/min and ~1k/day project-wide, and image generation
-is real money at roughly $0.04 an image. The point is that a burst of strangers from a
-LinkedIn post degrades into polite "try again in a minute" messages instead of eating the
-whole daily quota in one spike.
+Gemini free tier is **per model**: `gemini-3.5-flash-lite` (the demo's pin for every
+tier) allows 15 requests/min and 500/day per project (measured 2026-08-19 — the non-lite
+flash models allow only 20/day, which is why the demo does not use them). Image
+generation is real money at roughly $0.04 an image. The point is that a burst of
+strangers from a LinkedIn post degrades into polite "try again in a minute" messages
+instead of eating the whole daily quota in one spike. If the provider still refuses, the
+server translates the raw 429 into the same polite register — the raw quota JSON never
+reaches the chat.
 
 | Scope | Per visitor | Global | On limit |
 | --- | --- | --- | --- |
-| `chat` (any agent turn) | 6/min, 80/day | 8/min, 300/day | "The demo is at its usage limit right now" |
+| `chat` (any agent turn) | 6/min, 40/day | 8/min, 150/day | "The demo is at its usage limit right now" |
 | `image` (billable renders) | 4/min, 15/day | 8/min, 60/day | Renders pause; scores, analysis and editing keep working |
 
 One chat turn fans out into several provider calls (routing, tools, prose), which is why
