@@ -298,6 +298,16 @@ def build_respond_node(llm):
         )
         is_edit = depth in _EDIT_ACTIONS
 
+        # An edit turn that changed NOTHING (out-of-scope request, zero resolvable ops):
+        # apply_edits already wrote the honest explanation. Regenerating here narrates
+        # the user's own words back as a done deed ("you applied an edit to demolish
+        # the walls") — keep the truthful message instead.
+        if is_edit and not layout_diffs and not state.get("layout_updated"):
+            prior = (state.get("final_response") or "").strip()
+            if prior:
+                print("[respond] Edit made no change — keeping apply_edits' explanation.")
+                return {**state, "final_response": prior}
+
         if is_edit:
             fmt = _FORMAT_EDIT
         elif depth == "full":
@@ -336,7 +346,9 @@ def build_respond_node(llm):
         if is_edit:
             change_line = _format_changes(layout_diffs)
             sections += ["", "--- WHAT CHANGED (lead with this; may be several edits) ---",
-                         change_line or "(an edit was applied to the layout)"]
+                         change_line or ("(NOTHING was changed — the request did not match a "
+                                         "supported edit; say so plainly and do NOT claim an "
+                                         "edit was applied)")]
             rejected = [r for r in (state.get("rejected_edits") or []) if r]
             if rejected:
                 lines = [f"- {r.get('phrase', 'an edit')}: {r.get('reason', 'could not apply')}" for r in rejected]
