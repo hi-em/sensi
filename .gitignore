@@ -67,3 +67,6 @@ personas/persona.*.local.json
 .DS_Store
 Thumbs.db
 *.log
+
+# Per-user personas (signed-in visitors, dev file backend) — never committed
+personas/users/

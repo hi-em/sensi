@@ -803,20 +803,38 @@ def build_persona_compiler_node(llm, persona_output_path: str):
         if pvb:
             print(f"[persona_compiler] Preference vs baseline deviations: {list(pvb.keys())}")
 
-        # ── Save to disk ──────────────────────────────────────────────────
+        # ── Save ─────────────────────────────────────────────────────────
+        # Route by owner: a signed-in visitor's persona goes to THEIR store
+        # (keyed by auth_sub), never to the shared file. Anonymous visitors in
+        # the public demo get no write at all — persona.json is shared by every
+        # visitor and stays read-only (session carries their profile instead).
         save_ok = False
-        try:
-            os.makedirs(os.path.dirname(persona_output_path), exist_ok=True)
-            with open(persona_output_path, "w", encoding="utf-8") as f:
-                json.dump(persona_profile, f, indent=2, ensure_ascii=False)
-            save_ok = True
-            print(f"[persona_compiler] Persona saved -> {persona_output_path}")
+        auth_sub = state.get("auth_sub")
+        demo = os.getenv("DEMO_MODE", "").strip().lower() in ("1", "true", "yes", "on")
+        if auth_sub:
+            from api import user_store  # lazy: keeps node importable outside the API
+            try:
+                user_store.save_persona(auth_sub, persona_profile)
+                save_ok = True
+                print(f"[persona_compiler] Persona saved -> user store ({auth_sub[:6]}…)")
+            except Exception as exc:
+                print(f"[persona_compiler] WARNING: could not save to user store: {exc}")
+        elif demo:
+            save_ok = True  # deliberate no-write; the session keeps the profile
+            print("[persona_compiler] Demo mode, anonymous visitor — persona kept in-session only.")
+        else:
+            try:
+                os.makedirs(os.path.dirname(persona_output_path), exist_ok=True)
+                with open(persona_output_path, "w", encoding="utf-8") as f:
+                    json.dump(persona_profile, f, indent=2, ensure_ascii=False)
+                save_ok = True
+                print(f"[persona_compiler] Persona saved -> {persona_output_path}")
+            except Exception as exc:
+                print(f"[persona_compiler] WARNING: could not save persona file: {exc}")
+        if save_ok:
             weights_summary = {s: round(persona_profile["comfort_weights"].get(s, 0.5), 2) for s in _ALL_SENSES}
             print(f"[persona_compiler] Weights: {weights_summary}")
-        except Exception as exc:
-            print(f"[persona_compiler] WARNING: could not save persona file: {exc}")
-
-        if not save_ok:
+        else:
             print(f"[persona_compiler] Save path was: {persona_output_path!r}")
 
         # ── Build final response ──────────────────────────────────────────

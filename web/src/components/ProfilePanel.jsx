@@ -6,7 +6,8 @@ import PersonaCard from "./PersonaCard.jsx";
 // you shape. Renders the full PersonaCard (identity, priorities, spectrum, aesthetic,
 // honest math), and lets you REFINE it by telling Sensi what changed (it patches the
 // relevant bits — household/pets flow straight into scoring) or redo onboarding.
-export default function ProfilePanel({ persona, moodboardUrls = [], open, onClose, onRefine, onRedo }) {
+export default function ProfilePanel({ persona, moodboardUrls = [], open, onClose, onRefine, onRedo,
+  user = null, onSignOut }) {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -62,6 +63,13 @@ export default function ProfilePanel({ persona, moodboardUrls = [], open, onClos
 
         {onRedo && (
           <button className="panel-redo" onClick={onRedo}>start over · redo onboarding</button>
+        )}
+
+        {user && onSignOut && (
+          <div className="panel-account">
+            <span className="panel-account-who">signed in as {user.email || user.name}</span>
+            <button className="panel-redo" onClick={onSignOut}>sign out · back to the guest</button>
+          </div>
         )}
       </div>
     </div>

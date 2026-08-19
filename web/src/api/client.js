@@ -23,6 +23,7 @@ async function post(path, body = {}) {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include", // the signed sign-in cookie must ride along in dev (5173 → 8000)
     body: JSON.stringify({ session_id: getSessionId(), ...body }),
   });
   if (!res.ok) throw new Error(`${path} failed: ${res.status}`);
@@ -33,6 +34,8 @@ async function post(path, body = {}) {
 
 // ── Plain request/response endpoints ──────────────────────────────────────
 export const init             = ()             => post("/api/init");
+export const authGoogle       = (credential)   => post("/api/auth/google", { credential });
+export const authLogout       = ()             => post("/api/auth/logout");
 export const sendMessage      = (text)         => post("/api/message", { text });
 export const resetPersona     = ()             => post("/api/reset-persona");
 export const refinePersona    = (text)         => post("/api/refine-persona", { text });
@@ -58,6 +61,7 @@ async function streamSSE(path, body, handlers, signal) {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({ session_id: getSessionId(), ...body }),
     signal,
   });

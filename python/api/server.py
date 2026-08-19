@@ -29,6 +29,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.middleware.sessions import SessionMiddleware
 
 import os
 import sys
@@ -47,6 +48,8 @@ from nodes.onboarding.persona_compiler import refine_persona
 from api import contracts
 from api import checkpoints
 from api import rate_limit
+from api import auth
+from api import user_store
 
 # persona.json lives at personas/persona.json (matches the PyQt app).
 _PERSONA_PATH = Path(__file__).resolve().parent.parent.parent / "personas" / "persona.json"
@@ -69,6 +72,22 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+# Signed session cookie for Google sign-in. Without SESSION_SECRET an ephemeral
+# key is generated — fine for dev, but sign-ins then die with each restart.
+_session_secret = os.getenv("SESSION_SECRET", "").strip()
+if not _session_secret:
+    import secrets as _secrets
+    _session_secret = _secrets.token_hex(32)
+    print("[api] SESSION_SECRET not set — using an ephemeral session key.")
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=_session_secret,
+    max_age=30 * 24 * 3600,
+    same_site="lax",
+    https_only=bool(os.getenv("K_SERVICE")),  # Cloud Run sets K_SERVICE
 )
 
 
@@ -130,10 +149,19 @@ def _read_persona() -> Optional[dict]:
     return None
 
 
-def _write_persona(persona: dict) -> None:
-    """Persist the persona to the same file _read_persona loads. Best-effort: used to
-    stamp late-arriving fields (e.g. the moodboard) onto an already-compiled persona so
-    they survive a restart / returning-user reload."""
+def _write_persona(persona: dict, sess: Optional[dict] = None) -> None:
+    """Persist the persona where it belongs for this session. Signed-in visitors own
+    their persona (user_store, keyed by their Google sub); anonymous local users keep
+    the on-disk persona.json; anonymous demo visitors get no write at all — the shared
+    file is read-only. Best-effort: used to stamp late-arriving fields (e.g. the
+    moodboard) so they survive a restart / returning-user reload."""
+    sub = (sess or {}).get("auth_sub")
+    if sub:
+        try:
+            user_store.save_persona(sub, persona)
+        except Exception:
+            pass
+        return
     if rate_limit.enabled():
         return  # public demo: persona.json is shared by ALL visitors — keep it read-only
     try:
@@ -142,6 +170,17 @@ def _write_persona(persona: dict) -> None:
             json.dumps(persona, indent=2, ensure_ascii=False), encoding="utf-8")
     except Exception:
         pass
+
+
+def _stamp_auth(slot: dict, request: Request) -> None:
+    """Keep the session's auth marker in sync with the cookie, so persona writes
+    (compiler, refine, moodboard stamp) route to the signed-in user's own store
+    and never to the shared file."""
+    user = auth.current_user(request)
+    if user:
+        slot["session"]["auth_sub"] = user["sub"]
+    else:
+        slot["session"].pop("auth_sub", None)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -206,19 +245,64 @@ def health() -> dict:
 
 
 @app.post("/api/init")
-def init(req: SessionReq) -> dict:
-    """Initialise a session. Mirrors SensiBridge.initApp."""
+def init(req: SessionReq, request: Request) -> dict:
+    """Initialise a session. Signed-in visitors get their own stored persona (or
+    onboarding if they have none yet); everyone else gets the shared on-disk one."""
     sid, slot = _slot(req.session_id)
     demo = rate_limit.enabled()
-    persona = _read_persona()
+    user = auth.current_user(request)
+    if user:
+        try:
+            persona = user_store.get_persona(user["sub"])
+        except Exception:
+            persona = None
+    else:
+        persona = _read_persona()
     if persona:
         slot["session"] = contracts.session_for_returning_user(persona)
-        payload = contracts.init_payload_from_persona(persona, demo=demo)
+        # A signed-in visitor's persona is their own — "welcome back" is honest;
+        # only anonymous demo visitors get the guest introduction.
+        payload = contracts.init_payload_from_persona(persona, demo=demo and not user)
     else:
         message, new_session = run_agent("", _CTX, {})
         slot["session"] = new_session
         payload = contracts.init_payload_from_greeting(message, new_session)
-    return {"session_id": sid, "demo": demo, **payload}
+    _stamp_auth(slot, request)
+    return {"session_id": sid, "demo": demo, "user": user,
+            "auth_client_id": auth.client_id(), **payload}
+
+
+class AuthGoogleReq(BaseModel):
+    credential: str
+
+
+@app.post("/api/auth/google")
+def auth_google(req: AuthGoogleReq, request: Request) -> dict:
+    """Verify a Google ID token (from the GIS button) and open a cookie session."""
+    if not auth.enabled():
+        raise HTTPException(status_code=503, detail="Sign-in is not configured on this server.")
+    refusal = rate_limit.check("chat", rate_limit.client_ip(request))
+    if refusal:
+        raise HTTPException(status_code=429, detail=refusal)
+    try:
+        user = auth.verify(req.credential)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Could not verify the Google sign-in.")
+    request.session["user"] = user
+    return {"ok": True, "user": user}
+
+
+@app.post("/api/auth/logout")
+def auth_logout(req: SessionReq, request: Request) -> dict:
+    """Close the cookie session and drop the visitor's in-memory agent session, so
+    the next /api/init starts clean as a guest."""
+    try:
+        request.session.clear()
+    except (AssertionError, AttributeError):
+        pass
+    if req.session_id and req.session_id in _STORE:
+        del _STORE[req.session_id]
+    return {"ok": True}
 
 
 @app.post("/api/message")
@@ -228,6 +312,7 @@ def message(req: MessageReq, request: Request) -> dict:
     if refusal:
         raise HTTPException(status_code=429, detail=refusal)
     sid, slot = _slot(req.session_id)
+    _stamp_auth(slot, request)
     msg, new_session = run_agent(req.text, _CTX, slot["session"])
     # Maintain the checkpoint layer on top of the working draft (graph stays untouched).
     _orig = _original_layout(new_session)
@@ -295,6 +380,7 @@ def message_stream(req: MessageReq, request: Request) -> StreamingResponse:
         return StreamingResponse(iter([_sse("error", {"message": refusal})]),
                                  media_type="text/event-stream")
     sid, slot = _slot(req.session_id)
+    _stamp_auth(slot, request)
     q: "queue.Queue[tuple[str, Any]]" = queue.Queue()
 
     def worker() -> None:
@@ -402,15 +488,23 @@ def reset_persona(req: SessionReq, request: Request) -> dict:
     refusal = rate_limit.check("chat", rate_limit.client_ip(request))
     if refusal:
         raise HTTPException(status_code=429, detail=refusal)
-    # Public demo: the on-disk persona is shared by all visitors, so a reset only
-    # clears THIS visitor's session — their onboarding then lives in-session only.
-    if not rate_limit.enabled() and _PERSONA_PATH.exists():
+    # Signed-in visitors reset THEIR persona (it's theirs to delete). Anonymous:
+    # public demo resets only this visitor's session — the shared on-disk persona
+    # stays; a local user's persona.json is deleted as before.
+    user = auth.current_user(request)
+    if user:
+        try:
+            user_store.delete_persona(user["sub"])
+        except Exception:
+            pass
+    elif not rate_limit.enabled() and _PERSONA_PATH.exists():
         _PERSONA_PATH.unlink()
     sid, slot = _slot(req.session_id)
     slot["session"] = {}
     slot["inspire"] = _fresh_inspire()
     message, new_session = run_agent("", _CTX, {})
     slot["session"] = new_session
+    _stamp_auth(slot, request)
     return {"session_id": sid, **contracts.init_payload_from_greeting(message, new_session)}
 
 
@@ -529,7 +623,7 @@ def inspire_moodboard(req: MoodboardReq, request: Request) -> dict:
         prof = new_session.get("persona_profile")
         if isinstance(prof, dict):
             prof["moodboard_urls"] = board
-            _write_persona(prof)
+            _write_persona(prof, new_session)
         if isinstance(persona, dict):
             persona["moodboard_urls"] = board
 
@@ -1060,11 +1154,27 @@ def refine_persona_endpoint(req: RefinePersonaReq, request: Request) -> dict:
     if refusal:
         raise HTTPException(status_code=429, detail=refusal)
     sid, slot = _slot(req.session_id)
-    current = slot["session"].get("persona_profile") or _read_persona() or {}
-    # Public demo: persona.json is shared across visitors — refine in-session only.
-    out_path = None if rate_limit.enabled() else str(_PERSONA_PATH)
+    _stamp_auth(slot, request)
+    user = auth.current_user(request)
+    if user:
+        stored = None
+        try:
+            stored = user_store.get_persona(user["sub"])
+        except Exception:
+            pass
+        current = slot["session"].get("persona_profile") or stored or {}
+    else:
+        current = slot["session"].get("persona_profile") or _read_persona() or {}
+    # Anonymous public demo: persona.json is shared across visitors — refine
+    # in-session only. Signed-in users persist via their own store instead.
+    out_path = None if (rate_limit.enabled() or user) else str(_PERSONA_PATH)
     updated, message = refine_persona(_CTX.llm_smart, current, req.text, out_path)
     slot["session"]["persona_profile"] = updated
+    if user and isinstance(updated, dict) and updated:
+        try:
+            user_store.save_persona(user["sub"], updated)
+        except Exception:
+            pass
     return {"session_id": sid, "ok": True, "persona": updated, "message": message}
 
 

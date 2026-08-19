@@ -52,7 +52,8 @@ const LAYER_REQUIRES = { plan: null, comfort: "scores", graph: "topology" };
 // If a lens isn't available yet, clicking it asks Sensi to run the analysis.
 const LAYER_RUN_MSG = { comfort: "analyse the layout", graph: "map the topology of the layout" };
 
-export default function LayoutModeScreen({ messages, turns, thinking, persona, moodboardUrls = [],
+export default function LayoutModeScreen({ messages, turns, thinking, persona, user = null,
+  onSignOut, moodboardUrls = [],
   onRefinePersona, onRedoOnboarding, layoutId, layoutVersion = 0, onSend, onReport,
   streaming = false, onStop,
   checkpoints = [], hasUncommitted = false, uncommittedDelta = {}, liveHead = null, onCommit, onRestore,
@@ -319,7 +320,8 @@ export default function LayoutModeScreen({ messages, turns, thinking, persona, m
 
       {spaceInput && <SpaceInput pos={spaceInput} onSend={send} onClose={() => setSpaceInput(null)} />}
       <ProfilePanel persona={persona} moodboardUrls={moodboardUrls} open={profileOpen}
-        onClose={() => setProfileOpen(false)} onRefine={onRefinePersona} onRedo={onRedoOnboarding} />
+        onClose={() => setProfileOpen(false)} onRefine={onRefinePersona} onRedo={onRedoOnboarding}
+        user={user} onSignOut={onSignOut} />
 
       {galaxyOpen && (
         <ErrorBoundary fallback={(err) => (

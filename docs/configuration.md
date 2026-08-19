@@ -135,6 +135,36 @@ and this rate limiter both assume one process.
 
 ---
 
+## Google sign-in (optional)
+
+The guest path needs none of this — with `GOOGLE_OAUTH_CLIENT_ID` empty, the entry page
+simply hides the sign-in door. When configured, visitors can sign in with Google and get
+a **personal persona that persists** (built through the normal onboarding), while the
+shared guest persona stays read-only and rate limits apply to everyone equally.
+
+```env
+GOOGLE_OAUTH_CLIENT_ID = ""      # Web client ID from Google Auth Platform — PUBLIC by design
+SESSION_SECRET         = ""      # signs the session cookie; empty → ephemeral key (dev only)
+PERSONA_STORE          = "file"  # "file" (dev: personas/users/<sub>.json) | "firestore"
+```
+
+How it fits together — see [`python/api/auth.py`](../python/api/auth.py) and
+[`python/api/user_store.py`](../python/api/user_store.py):
+
+- **Flow**: GIS button → Google returns a signed ID token to the browser → the backend
+  verifies it (`google-auth`, checks signature/audience/expiry) → a signed, `lax`,
+  HTTPS-only session cookie holds `{sub, email, name}`. There is **no client secret** in
+  this flow, and passwords never touch Sensi. The stable user key is `sub`, never email.
+- **Storage**: `PERSONA_STORE=firestore` uses the project's default Firestore database
+  (collection `personas`, doc id = `sub`) via Application Default Credentials — no key
+  file. `file` keeps dev fully offline in `personas/users/` (git-ignored).
+- **Write routing**: persona writes (compiler, refine, moodboard stamp) go to the
+  signed-in user's own store; anonymous demo visitors never write the shared file.
+- **Cookie hardening**: `https_only` switches on automatically on Cloud Run (`K_SERVICE`).
+  In production, `SESSION_SECRET` comes from Secret Manager (`sensi-session-secret`).
+
+---
+
 ## Benchmark-only variables
 
 Read by `bench_nodes.py`, `bench_quality.py` and `imaging/benchmark.py`. Not needed to run

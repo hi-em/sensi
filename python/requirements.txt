@@ -15,6 +15,11 @@ python-dotenv         # loads the .env at the repo root
 fastapi
 uvicorn[standard]
 pydantic
+itsdangerous            # signs the session cookie (starlette SessionMiddleware)
+
+# ── Google sign-in + per-user persona storage ─────────────────────────────────
+google-auth             # verifies Google ID tokens (GIS button); no client secret
+google-cloud-firestore  # per-user personas in production (PERSONA_STORE=firestore)
 
 # ── Spatial soundness (edit-tool placement + geometry validation) ─────────────
 # Shapely powers sound placement of new windows / furniture (clear-span, buffer,

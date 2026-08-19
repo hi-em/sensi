@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as api from "./api/client.js";
 import Overlay from "./components/Overlay.jsx";
-import GuestIntro from "./components/GuestIntro.jsx";
+import EntryScreen from "./screens/EntryScreen.jsx";
 import QuizScreen from "./screens/QuizScreen.jsx";
 import LayoutModeScreen from "./screens/LayoutModeScreen.jsx";
 import InspireScreen from "./screens/InspireScreen.jsx";
@@ -43,7 +43,9 @@ export default function App() {
   const [layoutId, setLayoutId]   = useState(null);
   const [layoutVersion, setLayoutVersion] = useState(0); // bumped after edits to force a plan re-fetch
   const [thinking, setThinking]   = useState(false);
-  const [showGuestIntro, setShowGuestIntro] = useState(false); // demo-only hello card, once per browser
+  const [entryData, setEntryData] = useState(null);   // /api/init payload parked while the entry page shows
+  const [user, setUser]           = useState(null);   // {sub, email, name} when signed in with Google
+  const [authClientId, setAuthClientId] = useState("");
 
   // Quiz
   const [quizMessages, setQuizMessages] = useState([]);
@@ -149,13 +151,19 @@ export default function App() {
     api.init()
       .then((data) => {
         setOverlay(null);
+        setUser(data.user || null);
+        setAuthClientId(data.auth_client_id || "");
         if (data.screen === "chat") {
           if (data.persona) setPersona(data.persona);
           setLayoutId(data.layout_id || null);
-          setScreen("chat");
-          setChatMessages([{ id: nextId(), role: "s", text: data.message }]);
-          if (data.demo && !localStorage.getItem("sensi_guest_intro_seen")) {
-            setShowGuestIntro(true);
+          // Public demo, anonymous, no remembered choice → the entry page is the
+          // front door: pick the guest persona or sign in to build your own.
+          if (data.demo && !data.user && localStorage.getItem("sensi_entry_choice") !== "wren") {
+            setEntryData(data);
+            setScreen("entry");
+          } else {
+            setScreen("chat");
+            setChatMessages([{ id: nextId(), role: "s", text: data.message }]);
           }
         } else {
           setScreen("quiz");
@@ -302,16 +310,39 @@ export default function App() {
     setScreen("quiz");
   }, []);
 
-  const closeGuestIntro = useCallback(() => {
-    localStorage.setItem("sensi_guest_intro_seen", "1");
-    setShowGuestIntro(false);
+  // Entry page choices. Guest: remember it and walk into the parked chat payload.
+  // Google: trade the ID token for a session cookie, then reload — /api/init now
+  // routes by the signed-in user (their persona, or onboarding if none yet).
+  const chooseGuest = useCallback(() => {
+    localStorage.setItem("sensi_entry_choice", "wren");
+    setScreen("chat");
+    setChatMessages([{ id: nextId(), role: "s", text: entryData?.message || "" }]);
+  }, [entryData]);
+
+  const handleGoogleCredential = useCallback(async (credential) => {
+    try {
+      await api.authGoogle(credential);
+      localStorage.removeItem("sensi_entry_choice");
+      window.location.reload();
+    } catch {
+      /* stay on the entry page; the guest door still works */
+    }
+  }, []);
+
+  const signOut = useCallback(async () => {
+    try { await api.authLogout(); } catch { /* cookie may already be gone */ }
+    localStorage.removeItem("sensi_entry_choice");
+    api.clearSessionId();
+    window.location.reload();
   }, []);
 
   return (
     <>
       <Overlay message={overlay} />
-      {showGuestIntro && screen === "chat" && (
-        <GuestIntro persona={persona} onClose={closeGuestIntro} />
+
+      {screen === "entry" && (
+        <EntryScreen persona={persona} clientId={authClientId}
+          onGuest={chooseGuest} onGoogleCredential={handleGoogleCredential} />
       )}
 
       {screen === "quiz" && (
@@ -342,6 +373,8 @@ export default function App() {
             turns={turns}
             thinking={thinking}
             persona={persona}
+            user={user}
+            onSignOut={signOut}
             moodboardUrls={moodboardUrls}
             onRefinePersona={refinePersona}
             onRedoOnboarding={redoOnboarding}
