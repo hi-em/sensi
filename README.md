@@ -11,7 +11,7 @@ material layers, a relationship graph, a 3D galaxy, and the persona screens).
 > Institute for Advanced Architecture of Catalonia (IAAC), Master in Advanced
 > Computation for Architecture and Design.
 
-**Live demo:** [sensi.emiliechidiac.com](https://sensi.emiliechidiac.com) — first load after a quiet spell takes a few seconds while the server wakes.
+**Live demo:** [sensi.emiliechidiac.com](https://sensi.emiliechidiac.com). First load after a quiet spell takes a few seconds while the server wakes.
 
 **Team of 4.** Emilie El Chidiac (project lead), Charles Abi Chahine,
 María Sánchez Domínguez, Lakzhmy Mari Zaro. That team built the version that
