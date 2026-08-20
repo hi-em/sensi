@@ -40,7 +40,7 @@ anything in a real building, and it makes no clinical or health claims.
   moves several senses at once, in both directions. More glazing lifts the visual
   score and weakens the acoustic one. Soft surfaces lift tactile and acoustic
   together. Each coupling in
-  [`python/comfort/sense_model.py`](python/comfort/sense_model.py) is labelled
+  [`python/comfort/sense_model.py`](python/comfort/sense_model.py) is labeled
   `verified` or `inferred`, so you can see which ones rest on published
   room-acoustics and material physics and which are the team's reasoned estimates.
 - **A deliberately hard-to-game aggregate.** The whole-dwelling number is
@@ -60,7 +60,7 @@ anything in a real building, and it makes no clinical or health claims.
   spatial soundness with Shapely.
 
 Sensi is a design-reasoning and teaching tool. It models and estimates; it does not
-optimise a layout for you and it does not measure wellbeing.
+optimize a layout for you and it does not measure wellbeing.
 
 **45-second walkthrough:**
 [`docs/marketing/sensi-45s-16x9-scored.mp4`](docs/marketing/sensi-45s-16x9-scored.mp4).
