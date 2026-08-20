@@ -9,7 +9,7 @@ material layers, a relationship graph, a 3D galaxy, and the persona screens).
 
 > **MaCAD '26 Winner (June 2026).**
 > Institute for Advanced Architecture of Catalonia (IAAC), Master in Advanced
-> Computation for Architecture and Design.
+> Computational Design for Architecture II.
 
 **Live demo:** [sensi.emiliechidiac.com](https://sensi.emiliechidiac.com). First load after a quiet spell takes a few seconds while the server wakes.
 
