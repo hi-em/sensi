@@ -14,14 +14,16 @@ material layers, a relationship graph, a 3D galaxy, and the persona screens).
 **Live demo:** [sensi.emiliechidiac.com](https://sensi.emiliechidiac.com) — first load after a quiet spell takes a few seconds while the server wakes.
 
 **Team of 4.** Emilie El Chidiac (project lead), Charles Abi Chahine,
-María Sánchez Domínguez, Lakzhmy Mari Zaro.
+María Sánchez Domínguez, Lakzhmy Mari Zaro. That team built the version that
+won. Development continues solo as Emilie's MaCAD thesis.
 
 Built during the MaCAD 2026 computational design studio at IAAC, taught by
 João Silva, with teaching assistants Scott Lebow and Bao Q. Trinh. The studio
 repository, which hosts every team's work including the original `team_02/`
 version of this project, is
 [sclebow/AIA26_Studio](https://github.com/sclebow/AIA26_Studio). This repository is
-the continuation of that work as a thesis project, with fresh history.
+the continuation of that work as an ongoing thesis project, with fresh
+history.
 
 ![Sensi concept collage](final-sensi-concept/images/00%20-%20Concept%20Collage.png)
 
