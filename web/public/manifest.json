@@ -1,7 +1,7 @@
 {
   "name": "Sensi",
   "short_name": "Sensi",
-  "description": "An architectural comfort copilot — sense the space before you build it.",
+  "description": "An agentic AI comfort copilot for floor plans. Sense the space before you build it.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0D0D0D",

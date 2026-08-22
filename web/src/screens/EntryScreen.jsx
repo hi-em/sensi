@@ -16,12 +16,12 @@ const WREN_PEEKS = {
 };
 const BOARD_PEEK = "her palette: soft daylight, honeyed wood, clay walls, linen and wool, big leafy plants.";
 
-// Entry page — the front door of the public demo. One breath of story (what Sensi
+// Entry page: the front door of the public demo. One breath of story (what Sensi
 // is, the three-act journey), then the choice as a persona select: explore as the
 // curated guest, or sign in with Google and build a persona of your own.
 // The Wren card answers curiosity in place: hovering a sense chip or the moodboard
 // reveals one line about her in a fixed peek strip (no layout jumps). Choosing her
-// is a straight cut — the page settles out and the shape space rises in.
+// is a straight cut: the page settles out and the shape space rises in.
 // A signed-in visitor arriving here (via the wordmark) sees their own card on the
 // right and a continue door; the guest door asks them to sign out first.
 export default function EntryScreen({ persona, clientId, user = null,
@@ -40,7 +40,7 @@ export default function EntryScreen({ persona, clientId, user = null,
     setTimeout(onGuest, 340);
   };
 
-  // Google's own button (GIS, dark theme, English to match the page) — Google
+  // Google's own button (GIS, dark theme, English to match the page). Google
   // checks the password on its page and hands back a signed ID token; Sensi
   // never sees credentials.
   useEffect(() => {
