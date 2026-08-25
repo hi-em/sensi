@@ -1,0 +1,129 @@
+/* ── Mobile gate ────────────────────────────────────────────────────────────
+   Phone-only front door. Every rule here is namespaced .mg-* and this file is
+   imported by MobileGate.jsx alone, so nothing below can reach the desktop app:
+   on a laptop the component never mounts.
+
+   The one structural note: global.css sets `body { overflow: hidden }` because
+   the shape space is a fixed canvas. Rather than unpick that (which would touch
+   every desktop screen), the gate carries its own scroll container. #root is
+   already height:100%, so .mg-root fills it and scrolls inside it.
+─────────────────────────────────────────────────────────────────────────── */
+
+.mg-root {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The fade lives on the inner content, never on .mg-root. A transform on a
+   scroll container makes it the containing block for its descendants, which
+   breaks `position: sticky` on the band for as long as the animation runs:
+   exactly the moment the visitor first looks at it. */
+.mg-scroll {
+  flex: 1 0 auto;
+  animation: entry-fade var(--dur-slow) var(--ease-soft);
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  /* Centred when it fits, top-aligned and scrolling when it does not: flex-grow
+     takes the spare room on a tall phone, flex-shrink:0 refuses to squash on a
+     short one. */
+  justify-content: center;
+  padding: var(--space-5) var(--space-5) var(--space-4);
+}
+
+/* ── hero: the real entry page's opening, at phone measure ── */
+.mg-wordmark {
+  font-family: var(--font-mono);
+  font-weight: 300; font-size: 13px; letter-spacing: .26em;
+  color: rgba(var(--fg-rgb), .60);
+  margin-top: var(--space-3);
+}
+.mg-tag { font-size: 17px; color: var(--fg); margin-top: var(--space-3); line-height: 1.45; }
+.mg-sub {
+  font-size: 13px; color: rgba(var(--fg-rgb), .50);
+  max-width: 34rem; line-height: 1.65; margin-top: var(--space-2);
+}
+.mg-steps {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  margin-top: var(--space-4);
+}
+.mg-step {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .1em;
+  color: rgba(var(--fg-rgb), .50);
+  border: 1px solid rgba(var(--fg-rgb), var(--o-faint));
+  border-radius: var(--r-pill); padding: 5px 12px;
+}
+.mg-step-arrow {
+  color: rgba(var(--fg-rgb), .30); font-size: 12px; line-height: 1;
+  display: block;
+}
+
+/* ── the capture: what they are being kept out of ── */
+.mg-film {
+  width: 100%; max-width: 300px; margin-top: var(--space-4);
+  border: 1px solid rgba(var(--fg-rgb), var(--o-faint));
+  border-radius: var(--r-lg); overflow: hidden;
+  background: #0a0a0a;
+}
+/* img is the reduced-motion fallback and must size identically to the video. */
+.mg-film video, .mg-film img { display: block; width: 100%; height: auto; }
+.mg-caption {
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em;
+  color: rgba(var(--fg-rgb), .34); margin-top: var(--space-2); line-height: 1.6;
+}
+
+/* ── the band: sticky through the whole scroll, so the way out is never
+      more than a glance away, and never covers the last of the content ── */
+.mg-band {
+  position: sticky; bottom: 0; z-index: 2;
+  flex: none; width: 100%;
+  padding: var(--space-3) var(--space-5)
+           calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  background: rgba(13,13,13,.94);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(var(--fg-rgb), var(--o-hairline));
+}
+.mg-band-inner { max-width: 420px; margin: 0 auto; }
+.mg-band-line {
+  font-size: 12.5px; line-height: 1.55; color: rgba(var(--fg-rgb), .72);
+  text-align: center;
+}
+.mg-band-joke {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em;
+  color: rgba(232,131,106,.95); margin-top: var(--space-1); text-align: center;
+}
+.mg-cta {
+  display: block; width: 100%; margin-top: var(--space-2);
+  border: 1px solid rgba(232,131,106,.5); background: rgba(232,131,106,.14);
+  color: rgba(232,131,106,.95); border-radius: var(--r-pill);
+  padding: 11px 0; font-family: var(--font-mono);
+  font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
+  text-align: center; text-decoration: none;
+  min-height: 44px;   /* thumb target */
+}
+.mg-cta:active { background: rgba(232,131,106,.24); }
+
+/* Landscape phone: the same band stacked vertically would eat ~43% of a 375px
+   height. There is width going spare, so lay it across instead of down. */
+@media (max-height: 500px) {
+  .mg-band-inner {
+    max-width: 720px;
+    display: grid; grid-template-columns: minmax(0, 1fr) 200px;
+    align-items: center; gap: var(--space-5);
+    text-align: left;
+  }
+  .mg-band-line, .mg-band-joke { text-align: left; }
+  .mg-band-joke { margin-top: var(--space-1); }
+  .mg-cta { margin-top: 0; }
+  .mg-film { max-width: 300px; }
+  /* Width to spare, height to save: the three acts run across again, and the
+     same ↓ glyph turns to point along the row. */
+  .mg-steps { flex-direction: row; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .mg-step-arrow { transform: rotate(-90deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mg-scroll { animation: none; }
+}
