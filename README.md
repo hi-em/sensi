@@ -9,19 +9,21 @@ material layers, a relationship graph, a 3D galaxy, and the persona screens).
 
 > **MaCAD '26 Winner (June 2026).**
 > Institute for Advanced Architecture of Catalonia (IAAC), Master in Advanced
-> Computation for Architecture and Design.
+> Computational Design for Architecture II.
 
 **Live demo:** [sensi.emiliechidiac.com](https://sensi.emiliechidiac.com). First load after a quiet spell takes a few seconds while the server wakes.
 
 **Team of 4.** Emilie El Chidiac (project lead), Charles Abi Chahine,
-María Sánchez Domínguez, Lakzhmy Mari Zaro.
+María Sánchez Domínguez, Lakzhmy Mari Zaro. That team built the version that
+won. Development continues solo as Emilie's MaCAD thesis.
 
 Built during the MaCAD 2026 computational design studio at IAAC, taught by
 João Silva, with teaching assistants Scott Lebow and Bao Q. Trinh. The studio
 repository, which hosts every team's work including the original `team_02/`
 version of this project, is
 [sclebow/AIA26_Studio](https://github.com/sclebow/AIA26_Studio). This repository is
-the continuation of that work as a thesis project, with fresh history.
+the continuation of that work as an ongoing thesis project, with fresh
+history.
 
 ![Sensi concept collage](final-sensi-concept/images/00%20-%20Concept%20Collage.png)
 
@@ -38,7 +40,7 @@ anything in a real building, and it makes no clinical or health claims.
   moves several senses at once, in both directions. More glazing lifts the visual
   score and weakens the acoustic one. Soft surfaces lift tactile and acoustic
   together. Each coupling in
-  [`python/comfort/sense_model.py`](python/comfort/sense_model.py) is labelled
+  [`python/comfort/sense_model.py`](python/comfort/sense_model.py) is labeled
   `verified` or `inferred`, so you can see which ones rest on published
   room-acoustics and material physics and which are the team's reasoned estimates.
 - **A deliberately hard-to-game aggregate.** The whole-dwelling number is
@@ -58,7 +60,7 @@ anything in a real building, and it makes no clinical or health claims.
   spatial soundness with Shapely.
 
 Sensi is a design-reasoning and teaching tool. It models and estimates; it does not
-optimise a layout for you and it does not measure wellbeing.
+optimize a layout for you and it does not measure wellbeing.
 
 **45-second walkthrough:**
 [`docs/marketing/sensi-45s-16x9-scored.mp4`](docs/marketing/sensi-45s-16x9-scored.mp4).
