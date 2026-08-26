@@ -613,6 +613,35 @@ body {
   font-family: var(--font-mono); font-size: 11px; letter-spacing: .1em;
   color: rgba(var(--fg-rgb), .30); margin-top: var(--space-6);
 }
+
+/* A real footer, on the floor rather than trailing the cards. The two auto
+   margins (here and on .entry-hero) split the leftover height above and below
+   the content block, so on a tall monitor the hero stays optically centred and
+   this still sits on the bottom edge; on a laptop, where the page already
+   overflows, both collapse to zero and nothing moves. The negative margins
+   cancel .entry-screen's padding so the rule runs the full width. */
+.entry-credit {
+  align-self: stretch; margin-top: auto;
+  margin-left: calc(-1 * var(--space-5)); margin-right: calc(-1 * var(--space-5));
+  margin-bottom: calc(-1 * var(--space-6));
+  padding: 11px var(--space-5) 12px;
+  border-top: 1px solid rgba(var(--fg-rgb), .10);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-4);
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .1em;
+  color: rgba(var(--fg-rgb), .30);
+}
+.entry-credit a {
+  color: rgba(var(--fg-rgb), .52); text-decoration: none;
+  border-bottom: 1px solid rgba(var(--fg-rgb), .22);
+  transition: color .2s, border-color .2s;
+}
+.entry-credit a:hover { color: rgba(var(--fg-rgb), .82); border-bottom-color: rgba(var(--fg-rgb), .50); }
+.entry-credit-stack { white-space: nowrap; }
+.entry-hero { margin-top: auto; }
+@media (max-width: 640px) {
+  .entry-credit { flex-direction: column; gap: 5px; text-align: center; }
+}
 @media (max-width: 640px) {
   .entry-cards { grid-template-columns: 1fr; max-width: 340px; }
   .entry-steps { gap: 6px; }

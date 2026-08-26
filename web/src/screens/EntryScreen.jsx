@@ -165,6 +165,20 @@ export default function EntryScreen({ persona, clientId, user = null,
       </div>
 
       <p className="entry-footer">persona → shape the layout → understand why</p>
+
+      {/* The app's only outbound links. Sensi is served from a bare subdomain with
+          no site chrome around it, so without these a visitor arriving from a post
+          has nowhere to go but back, and a crawler reads the app as an orphan.
+          Provenance, not a byline: the domain already says whose it is. New tab,
+          because the demo behind it is the thing they came for. */}
+      <footer className="entry-credit">
+        <span>
+          a macad thesis at iaac{" · "}
+          <a href="https://emiliechidiac.com/work/sensi"
+             target="_blank" rel="noopener noreferrer">read the project ↗</a>
+        </span>
+        <span className="entry-credit-stack">langgraph · fastapi · react</span>
+      </footer>
     </motion.div>
   );
 }

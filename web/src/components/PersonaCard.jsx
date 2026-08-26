@@ -110,7 +110,7 @@ export default function PersonaCard({ persona, moodboardUrls = [], compact = fal
           <div className="persona-section-label">how it's scored</div>
           <div className="preveal-scoring">
             <div className="psc-point"><span className="psc-mark">○</span>
-              <div className="psc-body"><strong>Measured from the room.</strong>
+              <div className="psc-body"><strong>Estimated from the room.</strong>
                 <span className="psc-rest preveal-detail"> Daylight, materials, air and layout set each sense's score.</span></div></div>
             <div className="psc-point"><span className="psc-mark">◐</span>
               <div className="psc-body"><strong>Your priorities choose what matters.</strong>
