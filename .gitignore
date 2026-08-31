@@ -62,6 +62,7 @@ python/gen_before_after.py
 personas/persona.*.local.json
 
 # Editor / OS
+.claude/
 .vscode/
 .idea/
 .DS_Store
