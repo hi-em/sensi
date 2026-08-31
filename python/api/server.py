@@ -50,6 +50,7 @@ from api import checkpoints
 from api import rate_limit
 from api import auth
 from api import user_store
+from api import analytics
 
 # persona.json lives at personas/persona.json (matches the PyQt app).
 _PERSONA_PATH = Path(__file__).resolve().parent.parent.parent / "personas" / "persona.json"
@@ -268,6 +269,9 @@ def init(req: SessionReq, request: Request) -> dict:
         slot["session"] = new_session
         payload = contracts.init_payload_from_greeting(message, new_session)
     _stamp_auth(slot, request)
+    analytics.track("app_open", request=request, session_id=sid,
+                    mode="signed_in" if user else "guest",
+                    returning=bool(persona))
     return {"session_id": sid, "demo": demo, "user": user,
             "auth_client_id": auth.client_id(), **payload}
 
@@ -289,6 +293,7 @@ def auth_google(req: AuthGoogleReq, request: Request) -> dict:
     except Exception:
         raise HTTPException(status_code=401, detail="Could not verify the Google sign-in.")
     request.session["user"] = user
+    analytics.track("sign_in", request=request, mode="signed_in")
     return {"ok": True, "user": user}
 
 
@@ -302,6 +307,7 @@ def auth_logout(req: SessionReq, request: Request) -> dict:
         pass
     if req.session_id and req.session_id in _STORE:
         del _STORE[req.session_id]
+    analytics.track("sign_out", request=request, session_id=req.session_id)
     return {"ok": True}
 
 
@@ -330,6 +336,8 @@ def message(req: MessageReq, request: Request) -> dict:
         raise HTTPException(status_code=429, detail=refusal)
     sid, slot = _slot(req.session_id)
     _stamp_auth(slot, request)
+    analytics.track("message_sent", request=request, session_id=sid,
+                    mode="signed_in" if slot["session"].get("auth_sub") else "guest")
     try:
         msg, new_session = run_agent(req.text, _CTX, slot["session"])
     except Exception as exc:
@@ -405,6 +413,8 @@ def message_stream(req: MessageReq, request: Request) -> StreamingResponse:
                                  media_type="text/event-stream")
     sid, slot = _slot(req.session_id)
     _stamp_auth(slot, request)
+    analytics.track("message_sent", request=request, session_id=sid,
+                    mode="signed_in" if slot["session"].get("auth_sub") else "guest")
     q: "queue.Queue[tuple[str, Any]]" = queue.Queue()
 
     def worker() -> None:
@@ -655,6 +665,9 @@ def inspire_moodboard(req: MoodboardReq, request: Request) -> dict:
         if isinstance(persona, dict):
             persona["moodboard_urls"] = board
 
+    analytics.track("moodboard_created", request=request, session_id=sid,
+                    mode="signed_in" if sess.get("auth_sub") else "guest",
+                    picks=len(board))
     return {
         "session_id":     sid,
         "persona":        persona,
@@ -692,6 +705,7 @@ def layout_select(req: LayoutSelectReq) -> dict:
     slot["session"]["layout_json_string"] = ""
     slot["session"]["applied_suggestions"] = []   # fresh layout → suggestions un-crossed
     checkpoints.reset(slot["session"])
+    analytics.track("layout_selected", session_id=sid, layout_id=req.layout_id)
     return {"session_id": sid, "ok": True, "layout_id": req.layout_id}
 
 
@@ -844,6 +858,7 @@ def render_room(req: RenderRoomReq, request: Request) -> dict:
         return {"session_id": sid, "ok": False, "error": str(exc)}
     except Exception as exc:
         return {"session_id": sid, "ok": False, "error": f"Image generation failed: {exc}"}
+    analytics.track("render_room", request=request, session_id=sid, cached=cached)
     return {"session_id": sid, "ok": True, "cached": cached, **out}
 
 
@@ -912,6 +927,8 @@ def report(req: ReportReq) -> dict:
     if edited and edited not in featured and any(r["room_name"] == edited for r in out_rooms):
         featured.append(edited)
 
+    analytics.track("report_viewed", session_id=sid,
+                    rooms=len(out_rooms))
     return {
         "session_id": sid, "ok": True,
         "layout_id": sess.get("layout_id", ""),
