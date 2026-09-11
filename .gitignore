@@ -71,3 +71,9 @@ Thumbs.db
 
 # Per-user personas (signed-in visitors, dev file backend) — never committed
 personas/users/
+
+# Private thesis working files at the repo root (research canvases, roadmap copy).
+# Kept here for OneDrive sync; docs/thesis/ holds the roadmap's git-ignored home.
+sensi-discussion-notes*.html
+sensi-personal-call-card.md
+sensi-thesis-roadmap.md
