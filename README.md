@@ -14,8 +14,12 @@ material layers, a relationship graph, a 3D galaxy, and the persona screens).
 **Live demo:** [sensi.emiliechidiac.com](https://sensi.emiliechidiac.com). First load after a quiet spell takes a few seconds while the server wakes.
 
 **Team of 4.** Emilie El Chidiac (project lead), Charles Abi Chahine,
-María Sánchez Domínguez, Lakzhmy Mari Zaro. That team built the version that
-won. Development continues solo as Emilie's MaCAD thesis.
+María Sánchez Domínguez, Lakzhmy Mari Zaro. The four of us framed the question
+and the gap together; Emilie built it: the LangGraph agent, the evals and model
+benchmarks ([models and benchmarks](docs/reference/models-and-benchmarks.md),
+[quality evaluator](python/nodes/quality/evaluator.py)), the React interface, the
+test suite ([python/tests](python/tests)) and the Cloud Run + Firestore deploy.
+Development continues solo as Emilie's MaCAD thesis.
 
 Built during the MaCAD 2026 computational design studio at IAAC, taught by
 João Silva, with teaching assistants Scott Lebow and Bao Q. Trinh. The studio
