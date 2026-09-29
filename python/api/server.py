@@ -43,6 +43,7 @@ from graph import run_agent, run_agent_stream
 from inspire import run_inspire_round
 from imaging import generate_image, build_room_prompt, build_change_clause, active_provider
 from nodes._shared.utils import unwrap_mcp_result, persona_display_label, layout_digits
+from nodes._shared.persona_context import persona_scoring_args
 from nodes.onboarding.persona_compiler import refine_persona
 from api import contracts
 from api import checkpoints
@@ -352,6 +353,7 @@ def message(req: MessageReq, request: Request) -> dict:
     checkpoints.sync(new_session,
                      json.dumps(_orig) if _orig else "",
                      bool(new_session.get("layout_updated")))
+    _fill_initial_scores(new_session)
     slot["session"] = new_session
     return {"session_id": sid, **contracts.agent_response_payload(msg, new_session, new_session)}
 
@@ -432,6 +434,7 @@ def message_stream(req: MessageReq, request: Request) -> StreamingResponse:
             checkpoints.sync(new_session,
                              json.dumps(_orig) if _orig else "",
                              bool(new_session.get("layout_updated")))
+            _fill_initial_scores(new_session)
             slot["session"] = new_session
             payload = {"session_id": sid,
                        **contracts.agent_response_payload(msg, new_session, new_session)}
@@ -946,6 +949,25 @@ def report(req: ReportReq) -> dict:
 
 
 _SENSES = ["thermal", "visual", "acoustic", "spatial", "olfactory", "tactile"]
+
+
+def _fill_initial_scores(sess: dict) -> None:
+    """Checkpoint 0 saved before any analysis has no scores, so the checkpoint graph has
+    no starting point. Score its layout once with the same call the analyze node makes."""
+    cps = sess.get("checkpoints") or []
+    if not cps or cps[0].get("scores_json") or not cps[0].get("layout_json") or _CTX is None:
+        return
+    profile = sess.get("persona_profile")
+    if not profile:
+        return
+    try:
+        args = {"layout_json": cps[0]["layout_json"], "room_ids": "all", **persona_scoring_args(profile)}
+        cps[0]["scores_json"] = unwrap_mcp_result(_CTX.mcp_client.call_tool("compute_comfort_scores", args))
+    except Exception as exc:
+        print(f"[checkpoints] initial scoring failed: {type(exc).__name__}")
+        return
+    if len(cps) == 1 and not sess.get("committed_scores_json"):
+        sess["committed_scores_json"] = cps[0]["scores_json"]
 
 
 def _score_layout(layout_dict: dict, persona: dict) -> str:
