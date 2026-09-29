@@ -208,7 +208,7 @@ def build_quiz_node(llm):
         # -- Step 0: extract name from greet response --------------------------
         if quiz_step == 0 and not user_name:
             user_name = _extract_name(llm, raw_prompt)
-            print(f"[quiz] Name extracted: {user_name}")
+            print(f"[quiz] Name extracted: {bool(user_name)}")
 
         # -- Step 1: detect role from card/text answer -------------------------
         if quiz_step == 1:

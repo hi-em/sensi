@@ -134,7 +134,7 @@ def build_preview_node(mcp_client):
             f"Here's what would happen if I {change_desc} — nothing is applied yet:"
             f"{headline}\n\n{summary}"
         )
-        print(f"[preview] simulated {len(diffs)} op(s) on {room_name} (no commit)")
+        print(f"[preview] simulated {len(diffs)} op(s) (no commit)")
         return out
 
     return preview_node

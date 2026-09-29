@@ -100,7 +100,7 @@ def build_suggestion_critic_node(llm):
         )
 
         critique = call_llm_simple(llm, system, "Critique these suggestions.")
-        print(f"[suggestion_critic] Critique: {critique[:80]}...")
+        print(f"[suggestion_critic] Critique: {len(critique)} chars")
 
         return {**state, "suggestion_critique": critique}
 

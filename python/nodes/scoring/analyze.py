@@ -29,7 +29,7 @@ def build_analyze_node(mcp_client):
         args = {"layout_json": layout_json, "room_ids": room_ids,
                 **persona_scoring_args(persona_profile)}
 
-        print(f"[analyze] compute_comfort_scores (persona={args['persona']}, room_ids={room_ids}, "
+        print(f"[analyze] compute_comfort_scores (room_ids={room_ids}, "
               f"custom_weights={'weights_override' in args}, personality={args['personality']}, "
               f"context={derive_context(persona_profile) or 'none'})")
 

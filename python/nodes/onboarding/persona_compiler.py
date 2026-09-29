@@ -458,7 +458,7 @@ def _apply_quiz_fallback_patch(persona_profile: dict, quiz_answers: dict,
         persona_profile.get("household_members"), extracted_members)
     persona_profile["household_members"] = merged_members
     if merged_members:
-        print(f"[persona_compiler] household_members: {merged_members}")
+        print(f"[persona_compiler] household_members: {len(merged_members)}")
 
     # ── key_requirements ─────────────────────────────────────────────────────
     if not persona_profile.get("key_requirements") and q5:
@@ -687,10 +687,8 @@ def build_persona_compiler_node(llm, persona_output_path: str):
 
         print("[persona_compiler] Compiling full persona profile...")
         print(f"[persona_compiler] quiz_answers keys: {list(quiz_answers.keys())}")
-        print(f"[persona_compiler] q3 (sensory bothers): {quiz_answers.get('q3', '(none)')[:120]}")
-        print(f"[persona_compiler] inspire_summary ({len(inspire_summary)} chars): "
-              f"{inspire_summary[:80].strip() or '(empty)'}...")
-        print(f"[persona_compiler] user_name={user_name!r}  role={preliminary_role!r}")
+        print(f"[persona_compiler] inspire_summary: {len(inspire_summary)} chars")
+        print(f"[persona_compiler] role={preliminary_role!r}")
 
         if not quiz_answers:
             print("[persona_compiler] WARNING: quiz_answers is empty — sensory data will be minimal")
@@ -735,7 +733,7 @@ def build_persona_compiler_node(llm, persona_output_path: str):
                 else:
                     raise ValueError("No JSON object found in LLM response")
 
-            print(f"[persona_compiler] Profile compiled for: {persona_profile.get('name', '?')}")
+            print("[persona_compiler] Profile compiled")
 
         except Exception as exc:
             print(f"[persona_compiler] LLM/parse error ({exc}) — using minimal profile")
@@ -760,7 +758,7 @@ def build_persona_compiler_node(llm, persona_output_path: str):
         if not stored_name or stored_name.lower() in ("user", "there", ""):
             if user_name and user_name.lower() not in ("there", ""):
                 persona_profile["name"] = user_name.strip().capitalize()
-                print(f"[persona_compiler] Name patched from session: {persona_profile['name']}")
+                print("[persona_compiler] Name patched from session")
 
         stored_role = persona_profile.get("role", "client")
         if stored_role == "client" and preliminary_role not in ("client", "", None):
@@ -816,9 +814,9 @@ def build_persona_compiler_node(llm, persona_output_path: str):
             try:
                 user_store.save_persona(auth_sub, persona_profile)
                 save_ok = True
-                print(f"[persona_compiler] Persona saved -> user store ({auth_sub[:6]}…)")
+                print("[persona_compiler] Persona saved -> user store")
             except Exception as exc:
-                print(f"[persona_compiler] WARNING: could not save to user store: {exc}")
+                print(f"[persona_compiler] WARNING: could not save to user store: {type(exc).__name__}")
         elif demo:
             save_ok = True  # deliberate no-write; the session keeps the profile
             print("[persona_compiler] Demo mode, anonymous visitor — persona kept in-session only.")

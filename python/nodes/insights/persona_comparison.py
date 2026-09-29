@@ -112,7 +112,7 @@ def build_persona_comparison_node(mcp_client=None):
         compare_label = _pick_comparison_persona(raw_prompt, primary_label)
         comp = _ARCHETYPES.get(compare_label, _ARCHETYPES["Neutral"])
 
-        print(f"[persona_comparison] Comparing {primary_name} ({primary_label}) vs {compare_label}")
+        print(f"[persona_comparison] Comparing vs {compare_label}")
 
         # Run scoring for both — the user with their real weights/personality/context,
         # the archetype with its own — so the two genuinely differ.

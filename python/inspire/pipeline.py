@@ -307,7 +307,7 @@ def _fetch_unsplash_sensed(queries_with_senses: list, per_query: int = 3,
                     _ingest(results, sense, per_query)
                 else:
                     diag["failed"] += 1
-                    print(f"[inspire] Unsplash {status} for query {q!r} (ratelimit-remaining={rem})")
+                    print(f"[inspire] Unsplash {status} (ratelimit-remaining={rem if str(rem).isdigit() else '?'})")
                 _note_rate(status, rem)
 
     # Cache-aware serial fetch for the (rare) retry + top-up passes.
@@ -325,7 +325,7 @@ def _fetch_unsplash_sensed(queries_with_senses: list, per_query: int = 3,
             return _ingest(results, sense, limit)
         diag["failed"] += 1
         _note_rate(status, rem)
-        print(f"[inspire] Unsplash {status} for query {q!r} (ratelimit-remaining={rem})")
+        print(f"[inspire] Unsplash {status} (ratelimit-remaining={rem if str(rem).isdigit() else '?'})")
         return 0
 
     # Retry senses that returned 0 images (only while budget + quota remain).

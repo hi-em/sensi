@@ -47,7 +47,7 @@ def build_compare_versions_node():
                     lines.append(f"  {room_name}: no change")
 
             delta_summary = "\n".join(lines)
-            print(f"[compare_versions] {delta_summary[:120]}")
+            print(f"[compare_versions] summary: {len(delta_summary)} chars")
         except Exception as exc:
             print(f"[compare_versions] Delta error ({exc})")
             delta_summary = "(delta computation failed — proceeding with new scores)"

@@ -202,7 +202,7 @@ def build_action_classifier_node(llm):
             target_room = parsed.get("target_room")
             material = parsed.get("material")
 
-            print(f"[action_classifier] action={action} | layout_id={layout_id} | room={target_room} | material={material}")
+            print(f"[action_classifier] action={action} | layout_id={layout_id} | room={bool(target_room)} | material={bool(material)}")
 
         except Exception as exc:
             action = _keyword_fallback(raw_prompt, has_prior_analysis)

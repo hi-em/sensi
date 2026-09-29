@@ -131,7 +131,7 @@ def build_inspire_node(llm):
         inspire_summary: str = raw_prompt  # safe fallback
         try:
             inspire_summary = call_llm_simple(llm, _SYNTHESIS_SYSTEM_PROMPT, synthesis_input)
-            print(f"[inspire] Summary: {inspire_summary[:80]}...")
+            print(f"[inspire] Summary: {len(inspire_summary)} chars")
         except Exception as exc:
             print(f"[inspire] LLM synthesis failed ({exc}) -- storing raw answer")
 

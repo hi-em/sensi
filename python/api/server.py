@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import json
 import queue
-import re as _re
 import threading
 import uuid
 from pathlib import Path
@@ -216,6 +215,9 @@ class RefinePersonaReq(SessionReq):
 class LayoutSelectReq(BaseModel):
     session_id: Optional[str] = None
     layout_id: str
+
+_UPLOAD_MAX_BYTES = 512 * 1024
+
 
 class LayoutUploadReq(BaseModel):
     session_id: Optional[str] = None
@@ -705,45 +707,44 @@ def layout_select(req: LayoutSelectReq) -> dict:
     slot["session"]["layout_json_string"] = ""
     slot["session"]["applied_suggestions"] = []   # fresh layout → suggestions un-crossed
     checkpoints.reset(slot["session"])
-    analytics.track("layout_selected", session_id=sid, layout_id=req.layout_id)
+    analytics.track("layout_selected", session_id=sid, layout_id=layout_digits(req.layout_id))
     return {"session_id": sid, "ok": True, "layout_id": req.layout_id}
 
 
 @app.post("/api/layout/upload")
 def layout_upload(req: LayoutUploadReq) -> dict:
-    """Upload a custom layout JSON. Saves to randomized_layouts/ and selects it."""
+    """Upload a custom layout JSON into this session only and select it.
+
+    Uploads never touch disk: the shared layouts folder is read-only input for every
+    visitor. The layout gets a fresh server-chosen numeric id (7 digits, so it can't
+    match a shipped 3-digit layout), and load_layout's "already loaded" digit check
+    then keeps using the session copy instead of reading a file."""
     sid, slot = _slot(req.session_id)
-    # Public demo: uploads land in a folder every visitor shares — cap the size so
-    # strangers can't fill the instance's disk/RAM with junk layouts.
-    if rate_limit.enabled() and len(req.layout_json) > 512 * 1024:
-        return {"session_id": sid, "ok": False,
-                "error": "Layout too large for the demo (512 KB max)."}
+    if len(req.layout_json) > _UPLOAD_MAX_BYTES:
+        return {"session_id": sid, "ok": False, "error": "Layout too large (512 KB max)."}
     try:
         data = json.loads(req.layout_json)
     except Exception:
         return {"session_id": sid, "ok": False, "error": "Invalid JSON"}
+    if not isinstance(data, dict):
+        return {"session_id": sid, "ok": False, "error": "Invalid layout"}
 
-    layout_id = str(data.get("layoutId", f"custom-{sid[:6]}"))
-    layout_id = _re.sub(r"[^a-zA-Z0-9\-]", "-", layout_id)
+    name = str(data.get("name") or data.get("layoutId") or "custom layout")
+    layout_id = str(1_000_000 + uuid.uuid4().int % 9_000_000)
+    data["layoutId"] = layout_id
+    layout_str = json.dumps(data)
 
-    layouts_dir = _CTX.layout_input_dir if _CTX else (
-        Path(__file__).resolve().parent.parent.parent / "randomized_layouts"
-    )
-    save_path = layouts_dir / f"layout_{layout_id}.json"
-    try:
-        save_path.write_text(req.layout_json, encoding="utf-8")
-    except Exception as exc:
-        return {"session_id": sid, "ok": False, "error": str(exc)}
+    sess = slot["session"]
+    sess["layout_id"] = layout_id
+    sess["layout_json_string"] = layout_str
+    sess["uploaded_layout_json"] = layout_str     # pristine copy for the report's before/after
+    sess["last_scores_json"] = ""
+    sess["last_conflicts_json"] = ""
+    sess["last_suggestions_json"] = ""
+    sess["applied_suggestions"] = []   # fresh layout → suggestions un-crossed
+    checkpoints.reset(sess)
 
-    slot["session"]["layout_id"] = layout_id
-    slot["session"]["last_scores_json"] = ""
-    slot["session"]["last_conflicts_json"] = ""
-    slot["session"]["last_suggestions_json"] = ""
-    slot["session"]["layout_json_string"] = ""
-    slot["session"]["applied_suggestions"] = []   # fresh layout → suggestions un-crossed
-    checkpoints.reset(slot["session"])
-
-    return {"session_id": sid, "ok": True, "layout_id": layout_id, "name": data.get("name", layout_id)}
+    return {"session_id": sid, "ok": True, "layout_id": layout_id, "name": name}
 
 
 # session_id-independent cache: same (provider, layout, room, scores, furniture, persona) → same image
@@ -969,11 +970,20 @@ _INITIAL_COMPARE_CACHE: dict[str, dict] = {}
 
 
 def _original_layout(sess) -> dict | None:
-    """The pristine on-disk layout — edits only mutate the session string, never the
-    file, so the file IS the 'initial' state for the report's before/after."""
+    """The pristine layout — edits only mutate the session string, never the source,
+    so the shipped file (or the session's uploaded copy) IS the 'initial' state for
+    the report's before/after."""
+    norm = layout_digits(sess.get("layout_id", "") or "")
+    uploaded = sess.get("uploaded_layout_json")
+    if uploaded:
+        try:
+            up = json.loads(uploaded)
+            if layout_digits(up.get("layoutId")) == norm:
+                return up
+        except Exception:
+            pass
     if _CTX is None:
         return None
-    norm = layout_digits(sess.get("layout_id", "") or "")
     try:
         for p in sorted(Path(_CTX.layout_input_dir).glob("*.json")):
             if layout_digits(p.name) == norm:

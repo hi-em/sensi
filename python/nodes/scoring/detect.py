@@ -20,7 +20,7 @@ def build_detect_node(mcp_client):
         if not scores_json:
             raise RuntimeError("[detect] No scores available — ANALYZE must run first.")
 
-        print(f"[detect] detect_sensorial_conflicts (persona={persona_label}, custom_weights={bool(weights_override)})")
+        print(f"[detect] detect_sensorial_conflicts (custom_weights={bool(weights_override)})")
         args = {"scores_json": scores_json, "persona": persona_label}
         if weights_override:
             args["weights_override"] = json.dumps(weights_override)

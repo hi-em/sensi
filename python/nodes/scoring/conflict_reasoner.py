@@ -118,7 +118,7 @@ def build_conflict_reasoner_node(llm):
         )
 
         reasoning = call_llm_simple(llm, system, "Explain why these conflicts occurred.")
-        print(f"[conflict_reasoner] Reasoning: {reasoning[:80]}...")
+        print(f"[conflict_reasoner] Reasoning: {len(reasoning)} chars")
 
         return {
             **state,

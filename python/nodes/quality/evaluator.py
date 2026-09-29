@@ -101,11 +101,11 @@ def build_evaluator_node(llm):
                     feedback = raw.split(":", 1)[1].strip()
                 else:
                     feedback = raw[6:].strip()
-                print(f"[evaluator] REVISE — {feedback[:80]}")
+                print(f"[evaluator] REVISE ({len(feedback)} chars of feedback)")
             else:
                 # Unclear response — default to APPROVED to avoid infinite loop
                 decision = "APPROVED"
-                print(f"[evaluator] Unclear response '{raw[:40]}' — defaulting to APPROVED")
+                print("[evaluator] Unclear response — defaulting to APPROVED")
         except Exception as exc:
             decision = "APPROVED"
             print(f"[evaluator] LLM error ({exc}) — defaulting to APPROVED")

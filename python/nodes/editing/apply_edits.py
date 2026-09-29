@@ -192,7 +192,7 @@ def build_apply_edits_node():
                 layout.update(snapshot)               # revert THIS op only
                 rejected.append({"op": kind, "reason": "; ".join(sorted(new_defects)),
                                  "phrase": _op_phrase(op)})
-                print(f"[apply_edits] REVERTED {kind}: {sorted(new_defects)}")
+                print(f"[apply_edits] REVERTED {kind}: {len(new_defects)} new defect(s)")
                 continue
 
             diffs.append(diff)

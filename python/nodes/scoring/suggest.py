@@ -20,7 +20,7 @@ def build_suggest_node(mcp_client):
         if not conflicts_json:
             raise RuntimeError("[suggest] No conflicts available — DETECT must run first.")
 
-        print(f"[suggest] generate_suggestions (persona={persona_label}, custom_weights={bool(weights_override)})")
+        print(f"[suggest] generate_suggestions (custom_weights={bool(weights_override)})")
         args = {"conflicts": conflicts_json, "persona": persona_label}
         if weights_override:
             args["weights_override"] = json.dumps(weights_override)

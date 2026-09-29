@@ -328,8 +328,7 @@ def call_llm(
     try:
         return _normalize_llm_decision(_parse_llm_json(content))
     except Exception:
-        print("\n[llm] Raw LLM response before crash:")
-        print(content)
+        print(f"[llm] Unparseable LLM response ({len(content)} chars)")
         raise
 
 

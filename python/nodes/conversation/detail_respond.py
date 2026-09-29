@@ -107,7 +107,7 @@ def build_detail_respond_node(llm):
 
         print("[detail_respond] Answering specific follow-up question...")
         response = respond_text(llm, system, user_message)
-        print(f"[detail_respond] Response: {response[:80]}...")
+        print(f"[detail_respond] Response: {len(response)} chars")
 
         return {**state, "final_response": response}
 

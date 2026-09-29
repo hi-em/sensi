@@ -13,6 +13,7 @@ import { childrenOf } from "../lib/galaxyChildren.js";
 import { rippleSequence, worstSense } from "../lib/rippleSim.js";
 import { clusterForce, SENSE_ANCHORS, recomputeCentroids, bundleControlPoints } from "./galaxyForces.js";
 import GalaxyNarrator from "./GalaxyNarrator.jsx";
+import { nodeLabelHtml } from "./tooltip.js";
 
 const GUIDE_SEEN_KEY = "sensi.galaxy.guide.seen";   // first-run: tour auto-plays once
 
@@ -38,13 +39,6 @@ function baseColor(str) {
 const dashFor = (basis) => (basis === "physics" ? { dashSize: 4, gapSize: 3 } : { dashSize: 1e5, gapSize: 0 });
 const idOf = (x) => (x && typeof x === "object" ? x.id : x);
 const linkKey = (l) => `${idOf(l.source)}|${idOf(l.target)}|${l.kind}`;
-
-function nodeLabelHtml(n) {
-  if (n.kind === "sense") return `<div class="gx-tip"><b>${n.label}</b><br/>rooms failing: ${n.fail} · click to ripple / expand</div>`;
-  if (n.kind === "room") return `<div class="gx-tip"><b>${n.label}</b><br/>type ${n.rtype || "—"} · doors ${n.degree}${n.bridge ? " · structural" : ""}${n.isolated ? " · isolated" : ""}<br/>click to expand its senses + neighbours</div>`;
-  if (n.kind === "score") return `<div class="gx-tip"><b>${n.label}</b></div>`;
-  return `<div class="gx-tip"><b>${n.label}</b><br/>design lever · click to expand</div>`;
-}
 
 export default function RelationshipGalaxy({ turn, persona, onClose }) {
   const mountRef = useRef(null);

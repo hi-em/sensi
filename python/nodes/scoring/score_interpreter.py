@@ -85,7 +85,7 @@ def build_score_interpreter_node(llm):
         )
 
         interpretation = call_llm_simple(llm, system, "Interpret these scores.")
-        print(f"[score_interpreter] Interpretation: {interpretation[:80]}...")
+        print(f"[score_interpreter] Interpretation: {len(interpretation)} chars")
 
         return {
             **state,
