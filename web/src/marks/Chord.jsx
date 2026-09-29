@@ -1,12 +1,12 @@
 // The whole-home ripple chord. Only the model's own sense→sense adjustments
 // (homeEvents): one ribbon per directed edge, width = rooms where it fired; dots travel
 // cause → effect along it, one per room, red = lowers, green = raises; each sense end is
-// a full nebula sized by how many rooms sit below this person's threshold for it.
+// its glyph, sized by how many rooms sit below this person's threshold for it.
 // Still frame under reduced motion or when frames run slow.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SENSES, SC, STATUS } from "../lib/senses.js";
 import { homeEvents, reducedMotion } from "../lib/rippleEvents.js";
-import { Nebula2D } from "./marks2d.js";
+import { SenseMark } from "./marks2d.js";
 
 const W = 640, C = W / 2, R = 200;
 const ang = (k) => (k * 60 - 90) * Math.PI / 180;
@@ -74,7 +74,7 @@ export default function Chord({ rooms, size = W, thr, minimal = false, hover: ho
       paint((now - t0) / 1000 + 0.9);
       const dt = last ? now - last : 0; last = now;
       if (dt && dt < 250) { ema = ema * 0.94 + dt * 0.06; n++; }     // gaps (hidden tab) aren't slowness
-      if (n > 20 && ema > 30) return;                  // slow device: settle on this frame
+      if (n > 20 && ema > 30) { document.body.classList.add("is-still"); return; }   // slow device: settle on this frame
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -104,7 +104,7 @@ export default function Chord({ rooms, size = W, thr, minimal = false, hover: ho
         const d = Math.max(minimal ? 16 : 22, Math.round((minimal ? 62 : 48) * k0 * (0.75 + 0.5 * w)));
         return (
           <div key={s} style={{ position: "absolute", left: lx * k0 - d / 2, top: ly * k0 - d / 2 }}>
-            <Nebula2D sense={s} size={d} still={still} title={s} onClick={onSense ? (ev) => { ev.stopPropagation(); onSense(s); } : undefined} />
+            <SenseMark sense={s} size={d} title={s} onClick={onSense ? (ev) => { ev.stopPropagation(); onSense(s); } : undefined} />
           </div>
         );
       })}
