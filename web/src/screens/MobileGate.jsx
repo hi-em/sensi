@@ -13,7 +13,7 @@ import "../styles/mobile-gate.css";
 export default function MobileGate() {
   const home = useDemoHome();
   const [hover, setHover] = useState(null);
-  const w = Math.min(420, window.innerWidth - 32);
+  const w = Math.max(240, Math.min(420, window.innerWidth - 32));
 
   return (
     <div className="mg-root">

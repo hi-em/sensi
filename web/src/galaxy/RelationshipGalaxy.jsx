@@ -321,7 +321,7 @@ function GalaxyScene({ turn, persona, onClose }) {
         {read?.lever && <><div>{read.lever.lv}</div>{read.lever.rows.map(([, s, sign]) => <div key={s}><span style={{ color: SIGN_COLOR[sign] }}>{sign === "-" ? "−" : sign} </span><span style={{ color: SC[s] }}>{SI[s]} {WORD[s]}</span></div>)}</>}
         {read?.score && <div>{read.score.r.roomName} · <span style={{ color: SC[read.score.s] }}>{SI[read.score.s]} {WORD[read.score.s]}</span> <span style={{ color: read.score.v < data0.thr(read.score.s) ? STATUS.fail : undefined }}>{read.score.v.toFixed(2)}</span></div>}
         {read?.sense && <><div style={{ color: SC[read.sense] }}>{SI[read.sense]} {WORD[read.sense]}</div>{read.outs.map((e) => rel(e))}{read.ins.map((e) => rel(e))}{!read.outs.length && !read.ins.length && <div className="gx-mut">no ripple computed</div>}</>}
-        {read?.open && <><div>{read.open.r.roomName} <span className="gx-mut">{(read.open.r.overallScore ?? 0).toFixed(2)}</span></div>{read.open.ev.length ? read.open.ev.map((e, i) => rel(e, i, false)) : <div className="gx-mut">no ripple here</div>}</>}
+        {read?.open && <><div>{read.open.r.roomName} <span className="gx-mut">{(read.open.r.overallScore ?? 0).toFixed(2)}</span></div>{read.ev.length ? read.ev.map((e, i) => rel(e, i, false)) : <div className="gx-mut">no ripple here</div>}</>}
       </div>
 
       <div className="gx-legend" aria-label="legend">

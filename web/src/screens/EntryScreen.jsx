@@ -188,7 +188,7 @@ export default function EntryScreen({ persona, clientId, user = null,
 // glyph ends only, no caption. SVG + 2D canvas; a still frame under reduced motion.
 function HeroChord() {
   const home = useDemoHome();
-  const size = Math.min(260, window.innerWidth - 80);
+  const size = Math.max(160, Math.min(260, window.innerWidth - 80));
   return (
     <div className="entry-hero-chord" style={{ width: size, height: size }}>
       {home && <Chord rooms={home.rooms} size={size} minimal thr={home.thr} />}
