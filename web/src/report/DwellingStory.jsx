@@ -6,7 +6,8 @@ import { homeEvents } from "../lib/rippleEvents.js";
 import { VALENCE } from "../lib/relationships.js";
 import { useSelection } from "../lib/selection.jsx";
 import { roomScores, layoutScore } from "../lib/turn.js";
-import SenseGraph from "../components/SenseGraph.jsx";
+import Chord from "../marks/Chord.jsx";
+import { thresholdFromWeight } from "../lib/senseModel.js";
 import SenseSignature from "../components/SenseSignature.jsx";
 import BeforeAfterSlider from "../components/BeforeAfterSlider.jsx";
 import PromptText, { voicedFromScores } from "./PromptText.jsx";
@@ -47,7 +48,7 @@ function ripplesFor(S, rooms) {
  *      scrub of the before/after render, with a morphing sense rose + the two overall
  *      numbers that interpolate as you drag, and the two prompts that drove it.
  */
-export default function DwellingStory({ turn }) {
+export default function DwellingStory({ turn, persona }) {
   const { activeSense, setActiveSense } = useSelection();
   const scoreRooms = roomScores(turn);
   const avg = layoutScore(scoreRooms);
@@ -116,7 +117,10 @@ export default function DwellingStory({ turn }) {
       </div>
 
       <div className="ds-couplings">
-        <div className="ds-couplings-viz"><SenseGraph rooms={scoreRooms} size={220} /></div>
+        <div className="ds-couplings-viz">
+          <Chord rooms={scoreRooms} size={220} minimal thr={(s) => thresholdFromWeight(persona?.comfort_weights?.[s] ?? 0.5)}
+            onSense={(s) => setActiveSense(activeSense === s ? null : s)} />
+        </div>
         <div className="ds-couplings-copy">
           <div className="ds-section-label">how your senses talk to each other</div>
           {activeSense ? (
@@ -147,7 +151,7 @@ export default function DwellingStory({ turn }) {
               ) : (
                 <p className="ds-lesson">no sense is failing across your home.</p>
               )}
-              <div className="ds-couplings-hint">tap a sense to trace its ripple · solid = research, dashed = physics</div>
+              <div className="ds-couplings-hint">tap a sense to trace its ripple</div>
             </>
           )}
         </div>

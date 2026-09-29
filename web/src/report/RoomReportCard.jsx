@@ -4,7 +4,7 @@ import { STATUS } from "../lib/senses.js";
 import { thresholdFromWeight } from "../lib/senseModel.js";
 import { roomByName, suggestionsFor, narrativeBullets } from "../lib/turn.js";
 import SenseSignature from "../components/SenseSignature.jsx";
-import SenseRows from "../components/SenseRows.jsx";
+import Ledger from "../marks/Ledger.jsx";
 import Collapsible from "../ui/Collapsible.jsx";
 import RenderSlot from "./RenderSlot.jsx";
 import PromptText, { voicedFromScores } from "./PromptText.jsx";
@@ -71,7 +71,7 @@ export default function RoomReportCard({ room, turn, persona, img, defaultOpen =
                   activeSense={hoverSense} onHoverSense={setHoverSense} />
               </svg>
             </div>
-            <SenseRows eff={eff} base={base} weights={weights} adjustments={adjustments} />
+            <Ledger room={scored || { roomName: name, comfortScores: eff }} thr={(s) => thresholdFromWeight(weights[s] ?? 0.5)} />
           </div>
 
           <span className="rr-loop-arrow" aria-hidden="true">→</span>

@@ -303,7 +303,7 @@ export default function LayoutModeScreen({ messages, turns, thinking, persona, u
             {/* sense-coupling key plan + filter, bottom-left (card-less) */}
             {!bioLens && (
               <div className="lm-corner-left">
-                <SenseKey rooms={rooms} />
+                <SenseKey rooms={rooms} persona={persona} />
               </div>
             )}
 

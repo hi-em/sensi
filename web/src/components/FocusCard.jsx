@@ -6,7 +6,7 @@ import { roomByName, suggestionsFor, narrativeBullets } from "../lib/turn.js";
 import { DUR, EASE } from "../lib/motion.js";
 import Collapsible from "../ui/Collapsible.jsx";
 import SenseSignature from "./SenseSignature.jsx";
-import SenseRows from "./SenseRows.jsx";
+import Ledger from "../marks/Ledger.jsx";
 
 /*
  * FocusCard — the per-room detail, replacing the generic bars/radar panel.
@@ -43,7 +43,6 @@ export default function FocusCard({ turn, persona, onClose, onFix }) {
   const weights = persona?.comfort_weights || {};
   const eff = room.comfortScores || {};
   const base = room.baseScores || {};
-  const adjustments = room.adjustments || [];
   const overall = room.overallScore ?? 0;
 
   const roomSugg = suggestionsFor(turn, activeRoom);
@@ -86,7 +85,7 @@ export default function FocusCard({ turn, persona, onClose, onFix }) {
 
       {/* per-sense rows */}
       <div className="fc-section-label">senses</div>
-      <SenseRows eff={eff} base={base} weights={weights} adjustments={adjustments} />
+      <Ledger room={room} thr={thr} />
 
       {/* conflicts */}
       {failing.length > 0 && (

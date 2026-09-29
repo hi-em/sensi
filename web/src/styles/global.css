@@ -54,6 +54,9 @@ body {
 
 /* ── keyframes ── */
 @keyframes breathe { 0%,100%{background:#0D0D0D} 50%{background:#101010} }
+/* the page-wide breathe repaints everything each frame: off under reduced motion and on slow devices */
+@media (prefers-reduced-motion: reduce) { body { animation: none; } }
+body.is-still { animation: none; }
 @keyframes fadeUp  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
 @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
 @keyframes sensiBar {
@@ -194,6 +197,14 @@ body {
 /* docked key graph: compact square (overrides the tall 320px min-height the galaxy drawer uses) */
 .sense-key .sense-graph-svg { min-height: 180px; height: 180px; flex: none; }
 .sense-key-hint { color: rgba(var(--fg-rgb), 0.4); margin-top: 4px; line-height: 1.4; }
+/* the full ripple chord + its list of computed nudges, opened from the key */
+.ripple-panel { position: absolute; left: 0; bottom: 0; z-index: 30; width: min(640px, calc(100vw - 48px)); text-shadow: none; }
+.ripple-panel .cg-close { position: absolute; top: 8px; right: 10px; }
+.ripple-panel-body { display: flex; gap: 18px; align-items: center; padding: 18px 8px 10px; }
+.ripple-events { list-style: none; margin: 0; padding: 0; font-family: var(--font-mono); font-size: 11px; line-height: 1.9; min-width: 0; }
+.ripple-events li { padding: 0 6px; border-radius: 4px; white-space: nowrap; cursor: default; }
+.ripple-events li.on { background: rgba(var(--fg-rgb), 0.06); }
+.ripple-count, .ripple-none { color: rgba(var(--fg-rgb), 0.5); }
 .sense-key-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .sense-key-clear {
   background: none; border: 1px solid rgba(var(--fg-rgb), var(--o-faint)); border-radius: var(--r-pill);
@@ -2819,3 +2830,28 @@ textarea.sensi-input { resize: none; line-height: 1.7; height: 80px; border-radi
 .report-signature { text-align: center; font-family: var(--font-mono); font-size: 11px; letter-spacing: .14em;
   color: rgba(var(--fg-rgb), 0.4); margin-top: 40px; padding-top: 20px;
   border-top: 1px solid rgba(var(--fg-rgb), 0.08); }
+
+/* ── scores grid (marks/ScoresGrid.jsx) ── */
+.sgrid { font-family: var(--font-sans); font-size: 13px; color: rgb(var(--fg-rgb)); }
+.sgrid-table { display: grid; align-items: center; }
+.sgrid-row { display: flex; align-items: center; gap: 8px; min-width: 0; cursor: pointer; }
+.sgrid--compact .sgrid-row { gap: 4px; }
+.sgrid-row.open { align-self: start; padding-top: 8px; }
+.sgrid-mark { display: flex; justify-content: center; flex: none; }
+.sgrid-name { color: rgba(var(--fg-rgb), .75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sgrid--compact .sgrid-name { font-size: 12px; }
+.sgrid-row:hover .sgrid-name, .sgrid-row.open .sgrid-name { color: rgb(var(--fg-rgb)); }
+.sgrid-cell { position: relative; justify-self: center; transition: transform .15s, opacity .2s; cursor: pointer; }
+.sgrid-cell:hover, .sgrid-cell:focus-visible { transform: scale(1.12); outline: none; }
+.sgrid-overall { text-align: right; font: 500 13px var(--font-mono); }
+.sgrid--compact .sgrid-overall { font-size: 12px; }
+.sgrid-info { min-height: 22px; margin-top: 12px; font: 12px var(--font-mono); color: rgba(var(--fg-rgb), .85); }
+.sgrid-dot { position: absolute; top: 50%; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; pointer-events: none; }
+.sgrid-dot.dn { animation: sgDn 1.8s ease-in-out infinite; }
+.sgrid-dot.up { animation: sgUp 1.8s ease-in-out infinite; }
+.sgrid-dot.still.dn { animation: none; transform: translateY(6px); }
+.sgrid-dot.still.up { animation: none; transform: translateY(-6px); }
+@keyframes sgDn { 0% { transform: translateY(-8px); opacity: 0 } 25% { opacity: 1 } 100% { transform: translateY(8px); opacity: 0 } }
+@keyframes sgUp { 0% { transform: translateY(8px); opacity: 0 } 25% { opacity: 1 } 100% { transform: translateY(-8px); opacity: 0 } }
+@media (prefers-reduced-motion: reduce) { .sgrid-dot.dn, .sgrid-dot.up { animation: none; } }
+.report-grid { margin: 28px 0 8px; overflow-x: auto; }

@@ -4,6 +4,9 @@ import ReportHeader from "./ReportHeader.jsx";
 import ReportPersonaHeader from "./ReportPersonaHeader.jsx";
 import DwellingStory from "./DwellingStory.jsx";
 import RoomReportCard from "./RoomReportCard.jsx";
+import ScoresGrid from "../marks/ScoresGrid.jsx";
+import { roomScores } from "../lib/turn.js";
+import { thresholdFromWeight } from "../lib/senseModel.js";
 import { exportReportPng } from "./exportReportPng.js";
 import { exportBundle } from "./exportBundle.js";
 
@@ -73,7 +76,11 @@ export default function ReportScreen({ turn, persona, layoutId, onBack }) {
           {report.data && (
             <>
               <ReportPersonaHeader persona={persona} moodboardUrls={moodboardUrls} />
-              <DwellingStory turn={turn} />
+              <DwellingStory turn={turn} persona={persona} />
+              <div className="report-grid">
+                <ScoresGrid rooms={roomScores(turn)} thr={(s) => thresholdFromWeight(persona?.comfort_weights?.[s] ?? 0.5)}
+                  roomTypeOf={(r) => rooms.find((x) => x.room_name === r.roomName)?.room_type} />
+              </div>
               <div className="report-rooms">
                 {rooms.map((room) => (
                   <RoomReportCard
