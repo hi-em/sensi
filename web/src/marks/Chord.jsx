@@ -72,7 +72,8 @@ export default function Chord({ rooms, size = W, thr, minimal = false, hover: ho
     let raf = 0, last = 0, ema = 16, n = 0;
     const loop = (now) => {
       paint((now - t0) / 1000 + 0.9);
-      if (last) { ema = ema * 0.94 + (now - last) * 0.06; n++; } last = now;
+      const dt = last ? now - last : 0; last = now;
+      if (dt && dt < 250) { ema = ema * 0.94 + dt * 0.06; n++; }     // gaps (hidden tab) aren't slowness
       if (n > 20 && ema > 30) return;                  // slow device: settle on this frame
       raf = requestAnimationFrame(loop);
     };

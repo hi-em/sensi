@@ -27,7 +27,7 @@ export async function blobThumb(room, roomType, px = 96) {
   if (thumbs.has(key)) return thumbs.get(key);
   const st = await stage(); if (!st) return null;
   st.renderer.setPixelRatio(1); st.renderer.setSize(px, px, false);
-  const n = st.marks.roomNode(room, roomType, 5.5); n.rotation.y = 0.5; n.userData.face.rotation.x = -0.25; n.userData.face.scale.multiplyScalar(1.35);
+  const n = st.marks.roomNode(room, roomType, 5.5); n.rotation.y = 0.5; const face = n.userData.face; if (face) { face.rotation.x = -0.25; face.scale.multiplyScalar(1.35); }
   st.scene.add(n); st.renderer.render(st.scene, st.cam); const url = st.renderer.domElement.toDataURL("image/png"); st.scene.remove(n);
   n.traverse((o) => { o.geometry?.dispose?.(); o.material?.dispose?.(); });
   thumbs.set(key, url); return url;

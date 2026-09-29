@@ -225,7 +225,7 @@ body.is-still { animation: none; }
 .graph-expand-all:hover { color: rgba(var(--fg-rgb), 1); border-color: rgba(var(--fg-rgb), var(--o-soft)); }
 
 /* ── Relationship Galaxy (3D explore overlay) ─────────────────────────────── */
-.galaxy-overlay { position: fixed; inset: 0; z-index: 100; background: #0D0D0D; }
+.galaxy-overlay { position: fixed; inset: 0; z-index: 100; background: #000; }
 .galaxy-canvas  { position: absolute; inset: 0; }
 .galaxy-loading { display: flex; align-items: center; justify-content: center;
   color: rgba(var(--fg-rgb), 0.6); font-family: var(--font-mono); letter-spacing: .14em; text-transform: uppercase; }
@@ -2855,3 +2855,14 @@ textarea.sensi-input { resize: none; line-height: 1.7; height: 80px; border-radi
 @keyframes sgUp { 0% { transform: translateY(8px); opacity: 0 } 25% { opacity: 1 } 100% { transform: translateY(-8px); opacity: 0 } }
 @media (prefers-reduced-motion: reduce) { .sgrid-dot.dn, .sgrid-dot.up { animation: none; } }
 .report-grid { margin: 28px 0 8px; overflow-x: auto; }
+
+/* galaxy: hover readout (right) + glyph legend (left); no text in the scene */
+.gx-read { position: absolute; right: var(--space-4); top: 64px; width: 280px; z-index: 2; font: 12px/1.6 var(--font-mono); color: rgb(var(--fg-rgb));
+  background: rgba(0,0,0,.72); border: 1px solid rgba(var(--fg-rgb), .1); border-radius: 10px; padding: 10px 12px; pointer-events: none; }
+.gx-mut { color: rgba(var(--fg-rgb), .55); }
+.gx-rel { margin: 2px 0; }
+.gx-legend { position: absolute; left: var(--space-4); bottom: var(--space-4); z-index: 2; font: 11px/1.7 var(--font-mono); color: rgba(var(--fg-rgb), .75);
+  background: rgba(0,0,0,.6); border: 1px solid rgba(var(--fg-rgb), .08); border-radius: 10px; padding: 8px 12px; pointer-events: none; max-width: 300px; }
+.gx-legend-senses { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 4px; }
+.galaxy-fallback-body { position: absolute; inset: 64px var(--space-4) var(--space-4); overflow: auto; display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; justify-content: center; }
+@media (max-width: 720px) { .gx-read { width: auto; left: var(--space-4); top: auto; bottom: 120px; } }

@@ -1,454 +1,350 @@
-import { useEffect, useRef, useState } from "react";
-import { AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph3D from "3d-force-graph";
-import SpriteText from "three-spritetext";
+import * as THREE from "three";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-import {
-  FogExp2, Group, Vector3, QuadraticBezierCurve3, BufferGeometry, Line, LineDashedMaterial,
-  Mesh, SphereGeometry, OctahedronGeometry, MeshBasicMaterial, AdditiveBlending,
-} from "three";
-import { SENSES } from "../lib/constants.js";
-import { buildRelationshipGraph, buildContext, GALAXY_LEGEND, GALAXY_GUIDE, LENSES, DEFAULT_LENSES } from "../lib/relationshipGraph.js";
-import { childrenOf } from "../lib/galaxyChildren.js";
-import { rippleSteps } from "../lib/rippleSim.js";
-import { reducedMotion } from "../lib/rippleEvents.js";
-import { clusterForce, SENSE_ANCHORS, recomputeCentroids, bundleControlPoints } from "./galaxyForces.js";
-import GalaxyNarrator from "./GalaxyNarrator.jsx";
-import { nodeLabelHtml } from "./tooltip.js";
+import { SENSES, SC, SI, STATUS } from "../lib/senses.js";
+import { roomEvents, reducedMotion } from "../lib/rippleEvents.js";
+import { senseNebula, leverLantern, roomNode, pulseSystem, SENSE_DIR } from "../marks/marks3d.js";
+import { levelOf } from "../marks/levels.js";
+import Chord from "../marks/Chord.jsx";
+import ScoresGrid from "../marks/ScoresGrid.jsx";
+import { buildGalaxy, WORD, SIGN_COLOR } from "./galaxyGraph.js";
 
-const GUIDE_SEEN_KEY = "sensi.galaxy.guide.seen";   // first-run: tour auto-plays once
+// The galaxy: senses (nebulae), rooms (blob + type icon) and levers (lanterns) held by
+// soft forces — senses on a ring in chord order, levers above, rooms below — with every
+// link drawn from model output. Ripple fibers carry dots cause → effect (1 fiber one-way,
+// 2 mutual; dots = rooms it fired in; speed = size of the nudge; red lowers, green raises).
+// Click a room: it bursts into its six scores (constant size; fullness = felt score;
+// notch = below you) with only its own ripple; several can be open; open neighbours share
+// a sense across a door when topology flags it. No text in the scene; a glyph legend sits
+// on the side. Slow device or reduced motion: a laid-out still frame. No WebGL: the chord
+// and the orb grid instead.
 
-// The Relationship Galaxy — six sense-communities; links are delicate CURVED FIBERS
-// bundled toward the community waist (DTI look), dashed where the basis is physics.
-// Rooms = grey spheres, levers = bright-white wireframe diamonds. Meaning lenses;
-// click to expand in place; click a sense (or ▶) to ripple; "concept" = fibers only.
+const GUIDE_SEEN_KEY = "sensi.galaxy.guide.seen";
+const ang = (k) => (k * 60 - 90) * Math.PI / 180;
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+const easeOutBack = (x, s = 1.6) => 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2);
+const easeInBack = (x, s = 1.3) => (s + 1) * x * x * x - s * x * x;
+const RULES = { layers: 0.6, ring: true, gravity: true, help: true, pull: true, mass: true };
+const TOUR = [
+  { focus: "all", title: "Your home, read as comfort", body: "Six senses, your rooms, and what the model found between them." },
+  { focus: "sense", title: "Senses", body: "Each cloud is a sense. Bigger means more rooms below your comfort line." },
+  { focus: "room", title: "Rooms", body: "Each blob is a room, bulging toward the senses it does well on. Click one to open its six scores." },
+  { focus: "lever", title: "Levers", body: "Each glass cube is a design move. Green threads raise a sense, red lower it." },
+  { focus: "ripple", title: "Ripple", body: "Dots travel from cause to effect: one sense nudging another. More dots, more rooms." },
+];
 
-function withAlpha(color, a) {
-  if (typeof color !== "string") return color;
-  if (color.startsWith("#")) { const n = parseInt(color.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; }
-  if (color.startsWith("rgba(")) return color.replace(/[\d.]+\)\s*$/, `${a})`);
-  if (color.startsWith("rgb(")) return color.replace("rgb(", "rgba(").replace(")", `,${a})`);
-  return color;
+function hasWebGL() {
+  try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; }
 }
-function baseColor(str) {
-  if (typeof str !== "string") return "#ffffff";
-  if (str[0] === "#") return str;
-  const m = str.match(/rgba?\(([^)]+)\)/);
-  if (m) { const p = m[1].split(",").map((x) => x.trim()); return `rgb(${p[0]},${p[1]},${p[2]})`; }
-  return "#ffffff";
-}
-const dashFor = (basis) => (basis === "physics" ? { dashSize: 4, gapSize: 3 } : { dashSize: 1e5, gapSize: 0 });
-const idOf = (x) => (x && typeof x === "object" ? x.id : x);
-const linkKey = (l) => `${idOf(l.source)}|${idOf(l.target)}|${l.kind}`;
 
 export default function RelationshipGalaxy({ turn, persona, onClose }) {
-  const mountRef = useRef(null);
-  const graphRef = useRef(null);
-  const hlRef = useRef({ nodes: new Set(), links: new Set() });
-  const focusRef = useRef({ nodes: new Set(), links: new Set(), active: false });   // ripple focus (priority over hover)
-  const centroidsRef = useRef({});
-  const ctxRef = useRef(null);
-  const expandedRef = useRef(new Set());
-  const ownersRef = useRef(new Map());
-  const rippleTimersRef = useRef([]);
-  const rippleMeshesRef = useRef([]);
-  const rippleFocusRef = useRef(0);
-  const rafRef = useRef(0);
-  const hoverIvRef = useRef(0);
-  const lensesRef = useRef(null);
-  const conceptRef = useRef(false);
-  const prevLensesRef = useRef(null);
-  const spotlightRef = useRef(false);   // true while a TOUR spotlight owns focusRef (vs a ripple)
-  const tourStepRef = useRef(-1);
-  const [lenses, setLenses] = useState(() => new Set(DEFAULT_LENSES));
-  const [playing, setPlaying] = useState(false);
-  const [concept, setConcept] = useState(false);
-  const [legendOpen, setLegendOpen] = useState(false);
-  const [guideOn, setGuideOn] = useState(true);     // the Narrator band (educational layer)
-  const [tourStep, setTourStep] = useState(-1);     // -1 = not in the first-look tour
-  const [readout, setReadout] = useState(null);     // live plain-language hover/lens readout
-  lensesRef.current = lenses;
-  conceptRef.current = concept;
-  tourStepRef.current = tourStep;
+  const [webgl] = useState(hasWebGL);
+  return webgl ? <GalaxyScene turn={turn} persona={persona} onClose={onClose} /> : <GalaxyFallback turn={turn} persona={persona} onClose={onClose} />;
+}
 
-  const paintLink = (l) => {
-    const lines = l.__lines;
-    if (!lines) return;
-    const f = focusRef.current, hl = hlRef.current;
-    const base = l.__fiberOpacity ?? (l.opacity ?? 0.4);
-    let op;
-    if (f.active) op = f.links.has(l) ? Math.min(1, base + 0.45) : 0.006;
-    else op = hl.links.size ? (hl.links.has(l) ? Math.min(1, base + 0.4) : 0.012) : base;
-    lines.forEach((ln) => { ln.material.opacity = op; });
-  };
-  const nodeColorFn = (n) => {
-    const f = focusRef.current, hl = hlRef.current;
-    if (f.active) return f.nodes.has(n) ? n.color : withAlpha(n.color, 0.05);
-    return (hl.nodes.size && !hl.nodes.has(n)) ? withAlpha(n.color, 0.1) : n.color;
-  };
-  // re-set nodeColor with a FRESH function each time so 3d-force-graph actually
-  // recomputes node tints (re-setting the same reference is a no-op).
-  const refreshHighlight = () => { const G = graphRef.current; if (!G) return; G.nodeColor((n) => nodeColorFn(n)); G.graphData().links.forEach(paintLink); };
+function GalaxyFallback({ turn, persona, onClose }) {
+  const data = useMemo(() => buildGalaxy(turn, persona), [turn, persona]);
+  const types = new Map((turn?.graph_data?.nodes || []).map((n) => [n.id, n.room_type]));
+  return (
+    <div className="galaxy-overlay galaxy-fallback">
+      <div className="galaxy-top"><span className="galaxy-title">relationship galaxy</span><button className="galaxy-close" onClick={onClose} aria-label="close">×</button></div>
+      <div className="galaxy-fallback-body">
+        <Chord rooms={data.rooms} size={340} thr={data.thr} />
+        <ScoresGrid rooms={data.rooms} thr={data.thr} roomTypeOf={(r) => types.get(r.roomId)} />
+      </div>
+    </div>
+  );
+}
 
-  // Tour spotlight — REUSE the ripple focus-fade to light one element type and dim
-  // the rest. `focus`: "all" clears, "sense"/"room"/"lever" lights those nodes,
-  // "fiber" lights every thread. No new rendering path.
-  const applySpotlight = (focus) => {
-    const G = graphRef.current; if (!G) return;
-    const f = focusRef.current;
-    f.nodes = new Set(); f.links = new Set();
-    if (!focus || focus === "all") { f.active = false; spotlightRef.current = false; refreshHighlight(); return; }
-    const { nodes, links } = G.graphData();
-    if (focus === "fiber") links.forEach((l) => f.links.add(l));
-    else nodes.forEach((n) => { if (n.kind === focus) f.nodes.add(n); });
-    f.active = true; spotlightRef.current = true;
-    refreshHighlight();
-  };
+function GalaxyScene({ turn, persona, onClose }) {
+  const mount = useRef(null); const S = useRef({});
+  const [read, setRead] = useState(null);
+  const [allOpen, setAllOpen] = useState(false);
+  const [tourStep, setTourStep] = useState(-1);
+  const data0 = useMemo(() => buildGalaxy(turn, persona), [turn, persona]);
+  const tourRef = useRef(-1); tourRef.current = tourStep;
 
-  // ── ripple pulses travelling the fibers ──
-  const tickRipple = () => {
-    const G = graphRef.current; const arr = rippleMeshesRef.current;
-    if (!G) { rafRef.current = 0; return; }
-    for (let i = arr.length - 1; i >= 0; i--) {
-      const p = arr[i];
-      p.t += p.speed;
-      if (p.t >= 1 || !p.curve) { G.scene().remove(p.mesh); p.mesh.geometry.dispose(); p.mesh.material.dispose(); arr.splice(i, 1); continue; }
-      const pt = p.curve.getPoint(p.t);
-      p.mesh.position.set(pt.x, pt.y, pt.z);
-      p.mesh.material.opacity = Math.sin(p.t * Math.PI);
-    }
-    rafRef.current = arr.length ? requestAnimationFrame(tickRipple) : 0;
-  };
-  const spawnPulse = (curve, color, speed) => {
-    const G = graphRef.current; if (!G || !curve) return;
-    const mesh = new Mesh(new SphereGeometry(2.4, 8, 8),
-      new MeshBasicMaterial({ color: baseColor(color), transparent: true, opacity: 0, blending: AdditiveBlending, depthWrite: false }));
-    const p0 = curve.getPoint(0); mesh.position.set(p0.x, p0.y, p0.z);
-    G.scene().add(mesh);
-    rippleMeshesRef.current.push({ curve, t: 0, speed: speed || 0.012, mesh });
-    if (!rafRef.current) rafRef.current = requestAnimationFrame(tickRipple);
-  };
-  const clearRipple = () => {
-    rippleTimersRef.current.forEach(clearTimeout); rippleTimersRef.current = [];
-    clearTimeout(rippleFocusRef.current);
-    focusRef.current.active = false;
-    hlRef.current.nodes.clear(); hlRef.current.links.clear();
-    const G = graphRef.current;
-    rippleMeshesRef.current.forEach((p) => { try { G && G.scene().remove(p.mesh); p.mesh.geometry.dispose(); p.mesh.material.dispose(); } catch { /* noop */ } });
-    rippleMeshesRef.current = [];
-    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = 0; }
-  };
-  const fireRipple = (sourceSenseId, focus = false) => {
-    const G = graphRef.current, ctx = ctxRef.current;
-    if (!G || !ctx) return;
-    const sense = idOf(sourceSenseId).replace("sense:", "");
-    const couplings = G.graphData().links.filter((l) => l.kind === "coupling" && idOf(l.source).startsWith("sense:"));
-    const findLink = (a, b) => couplings.find((l) => idOf(l.source) === `sense:${a}` && idOf(l.target) === `sense:${b}`);
-    const seq = rippleSteps(sense, ctx.events);          // only what the model computed
-    const still = reducedMotion();
-    const senses = new Set([sense]); const inLinks = new Set(); let maxDelay = 0;
-    seq.forEach((step) => {
-      senses.add(step.from); senses.add(step.to); maxDelay = Math.max(maxDelay, step.delay);
-      const link = findLink(step.from, step.to); if (!link) return; inLinks.add(link);
-      if (still) return;
-      for (let i = 0; i < step.count; i++) { const t = setTimeout(() => spawnPulse(link.__curve, step.color, step.speed), step.delay + i * 130); rippleTimersRef.current.push(t); }
-    });
-    if (focus) {                                  // fade everything not in the ripple path
-      const f = focusRef.current; f.nodes = new Set(); f.links = new Set();
-      G.graphData().nodes.forEach((n) => { if (n.kind === "sense" && senses.has(n.sense)) f.nodes.add(n); });
-      inLinks.forEach((l) => f.links.add(l));
-      f.active = true;
-      refreshHighlight();
-      clearTimeout(rippleFocusRef.current);
-      rippleFocusRef.current = setTimeout(() => { focusRef.current.active = false; hlRef.current.nodes.clear(); hlRef.current.links.clear(); refreshHighlight(); }, maxDelay + 3500);
-    }
-  };
-
-  // ── expand / collapse in place ──
-  const expand = (node) => {
-    const G = graphRef.current, ctx = ctxRef.current;
-    if (!G || !ctx) return;
-    const { nodes, links } = G.graphData();
-    const byId = new Map(nodes.map((n) => [n.id, n]));
-    const have = new Set(links.map(linkKey));
-    const jit = () => (Math.random() - 0.5) * 18;
-    const addOwner = (cid) => { (ownersRef.current.get(cid) || ownersRef.current.set(cid, new Set()).get(cid)).add(node.id); };
-    const c = childrenOf(node, ctx);
-    c.nodes.forEach((n) => {
-      const ex = byId.get(n.id);
-      if (!ex) { n.x = (node.x || 0) + jit(); n.y = (node.y || 0) + jit(); n.z = (node.z || 0) + jit(); nodes.push(n); byId.set(n.id, n); addOwner(n.id); }
-      else if (ex.parent) addOwner(n.id);
-    });
-    c.links.forEach((l) => { if (!have.has(linkKey(l))) { links.push(l); have.add(linkKey(l)); } });
-    expandedRef.current.add(node.id);
-    G.graphData({ nodes, links });
-  };
-  const collapse = (id) => {
-    const G = graphRef.current; if (!G) return;
-    let { nodes, links } = G.graphData();
-    const remove = new Set();
-    nodes.forEach((n) => {
-      if (!n.parent) return;
-      const owners = ownersRef.current.get(n.id);
-      if (owners && owners.has(id)) { owners.delete(id); if (owners.size === 0) { remove.add(n.id); ownersRef.current.delete(n.id); expandedRef.current.delete(n.id); } }
-    });
-    links = links.filter((l) => l.owner !== id && !remove.has(l.owner) && !remove.has(idOf(l.source)) && !remove.has(idOf(l.target)));
-    nodes = nodes.filter((n) => !remove.has(n.id));
-    expandedRef.current.delete(id);
-    G.graphData({ nodes, links });
-  };
-
-  // init once
   useEffect(() => {
-    const el = mountRef.current;
-    if (!el) return;
-    const hl = hlRef.current;
-    const G = new ForceGraph3D(el)
-      .backgroundColor("#0D0D0D")
-      .showNavInfo(false)
-      .nodeResolution(14)
-      .nodeVal((n) => n.val)
-      .nodeRelSize(2.2)
-      .nodeOpacity(0.78)
-      .nodeVisibility(() => !conceptRef.current)              // "concept" hides nodes → pure fibers
-      .nodeColor(nodeColorFn)
-      .nodeThreeObjectExtend(true)
-      .nodeThreeObject((n) => {
-        if (n.kind === "sense") {
-          const t = new SpriteText(` ${n.label} `);
-          t.color = n.color; t.textHeight = 5; t.fontFace = "JetBrains Mono, monospace";
-          t.backgroundColor = "rgba(13,13,13,0.72)"; t.padding = 2; t.borderRadius = 3;
-          t.material.depthWrite = false; t.material.transparent = true;
-          t.position.set(0, 10, 0);                            // float the chip above the node
-          return t;
-        }
-        if (n.kind === "lever") {                              // small bright-white wireframe diamond (smallest tier)
-          return new Mesh(new OctahedronGeometry(3.6, 0),
-            new MeshBasicMaterial({ color: "#F2F4F8", wireframe: true, transparent: true, opacity: 0.6, depthWrite: false }));
-        }
-        return null;
+    const el = mount.current; if (!el || !data0.nodes.length) return;
+    const { thr } = data0; const st = S.current; const rm = reducedMotion();
+    const data = { nodes: data0.nodes.map((x) => ({ ...x })), links: data0.links.map((x) => ({ ...x })) };
+    const hl = { nodes: new Set(), links: new Set(), on: false };
+    st.open = new Map(); st.focus = null; st.degraded = false;
+
+    const g = new ForceGraph3D(el, { controlType: "orbit" })
+      .backgroundColor("#000000").showNavInfo(false).nodeRelSize(1).nodeLabel(() => "")
+      .nodeThreeObject((x) => {
+        let o;
+        if (x.kind === "sense") o = senseNebula(x.s, 4.5 + x.fail * 0.55);
+        else if (x.kind === "room") o = roomNode(x.r, x.rtype, 3 + x.failing.length * 0.45);
+        else if (x.kind === "lever") o = leverLantern(x.lv, 1.8 + x.rows.length * 0.25);
+        else if (x.kind === "score") o = senseNebula(x.s, 2.4, { level: levelOf(x.v), below: x.v < thr(x.s), variant: "light" });
+        o.traverse((m) => { if (m.material && !m.material.uniforms) { m.material.transparent = true; m.userData.o0 = m.material.opacity; } });
+        x.__obj = o; return o;
       })
-      .linkThreeObjectExtend(false)
       .linkThreeObject((l) => {
-        // each connection = a BUNDLE of thin fanned sub-fibers (more in concept mode)
-        const concept = conceptRef.current;
-        const K = concept ? 8 : 1;                 // fanned bundles only in fiber view; single clean fibre normally
-        const d = dashFor(l.basis);
-        const fiberOpacity = (l.opacity ?? 0.4) * (concept ? 0.28 : 0.65);
-        l.__fiberOpacity = fiberOpacity;
-        const group = new Group();
-        const lines = [];
-        for (let i = 0; i < K; i++) {
-          const line = new Line(new BufferGeometry(),
-            new LineDashedMaterial({ color: baseColor(l.color), transparent: true, opacity: fiberOpacity, blending: AdditiveBlending, depthWrite: false, dashSize: d.dashSize, gapSize: d.gapSize }));
-          group.add(line); lines.push(line);
+        const pts = new Float32Array(33 * 3); const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(pts, 3));
+        let mat;
+        if (l.kind === "ripple" || l.kind === "inner") {
+          const cols = new Float32Array(33 * 3); const ca = new THREE.Color(SC[l.e.from]), cb = new THREE.Color(SC[l.e.to]);
+          for (let i = 0; i < 33; i++) { const c = ca.clone().lerp(cb, i / 32); cols.set([c.r, c.g, c.b], i * 3); }
+          geo.setAttribute("color", new THREE.BufferAttribute(cols, 3));
+          mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: l.kind === "inner" ? 0.85 : 0.2 + l.reach * 0.8, blending: THREE.AdditiveBlending, depthWrite: false });
+        } else if (l.kind === "lever" && l.tier !== "verified") {
+          mat = new THREE.LineDashedMaterial({ color: SIGN_COLOR[l.sign], transparent: true, opacity: 0.35, dashSize: 2, gapSize: 2 });
+        } else {
+          const color = l.kind === "lever" ? SIGN_COLOR[l.sign] : l.kind === "door" ? (l.conflicts.length ? SC[l.conflicts[0]] : "#5a5a62") : SC[l.s] || "#777";
+          const op = l.kind === "short" ? 0.06 + l.def * 0.5 : l.kind === "lever" ? 0.4 : l.kind === "door" ? (l.conflicts.length ? 0.55 : 0.2)
+            : l.kind === "has" ? 0.35 : l.kind === "tie" ? 0.12 : l.kind === "shared" ? 0.85 : 0.25;
+          mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false });
         }
-        group.userData = { seg: concept ? 22 : 18, K };
-        l.__lines = lines;
-        return group;
+        const line = new THREE.Line(geo, mat); line.userData.o0 = mat.opacity; l.__line = line; return line;
       })
-      .linkPositionUpdate((group, { start, end }, l) => {
-        const s = new Vector3(start.x, start.y, start.z), e = new Vector3(end.x, end.y, end.z);
-        const { seg, K } = group.userData;
-        const ctrls = bundleControlPoints(l, s, e, centroidsRef.current, K);
-        for (let i = 0; i < K; i++) {
-          const curve = new QuadraticBezierCurve3(s, ctrls[i], e);
-          if (i === 0) l.__curve = curve;                  // ripple rides the centre fibre
-          const line = l.__lines[i];
-          line.geometry.setFromPoints(curve.getPoints(seg));
-          line.computeLineDistances();
-        }
-        return true;
+      .linkPositionUpdate((line, { start, end }, l) => {
+        const a = new THREE.Vector3(start.x, start.y, start.z), b = new THREE.Vector3(end.x, end.y, end.z); const mid = a.clone().add(b).multiplyScalar(0.5);
+        const d = b.clone().sub(a); const L = d.length() || 1; const up = Math.abs(d.y / L) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+        const perp = new THREE.Vector3().crossVectors(d, up).normalize();
+        const bow = l.kind === "ripple" ? (l.mutual ? 0.16 * l.side : 0.06) : l.kind === "inner" ? 0.12 * (l.side || 1) : 0.08;
+        const c = new THREE.QuadraticBezierCurve3(a, mid.add(perp.multiplyScalar(L * bow)), b); l.__curve = c;
+        const pos = line.geometry.attributes.position; for (let i = 0; i < 33; i++) { const p = c.getPoint(i / 32); pos.setXYZ(i, p.x, p.y, p.z); }
+        pos.needsUpdate = true; line.geometry.computeBoundingSphere(); if (line.computeLineDistances) line.computeLineDistances(); return true;
       })
-      .nodeLabel(nodeLabelHtml)
-      .onNodeHover((node) => {
-        hl.nodes.clear(); hl.links.clear();
-        if (node) {
-          hl.nodes.add(node);
-          G.graphData().links.forEach((l) => { if (l.source === node || l.target === node) { hl.links.add(l); hl.nodes.add(l.source); hl.nodes.add(l.target); } });
-        }
-        el.style.cursor = node ? "pointer" : "";
-        setReadout(node ? GALAXY_GUIDE.readNode(node) : null);   // narrator: plain-language readout
-        refreshHighlight();
-        if (hoverIvRef.current) { clearInterval(hoverIvRef.current); hoverIvRef.current = 0; }
-        if (node && hl.links.size && !reducedMotion()) {
-          // dots travel = direction, so undirected door links stay still
-          const flow = () => hlRef.current.links.forEach((l) => { if (l.__curve && !["transmission", "adjacency", "structure"].includes(l.kind)) spawnPulse(l.__curve, l.color, 0.02); });
-          flow(); hoverIvRef.current = setInterval(flow, 650);
-        }
-      })
-      .onLinkHover((link) => {                                    // narrator: a fiber, read in plain words
-        if (link) setReadout(GALAXY_GUIDE.readLink(link));
-        else if (!hlRef.current.nodes.size) setReadout(null);    // keep a node readout if one is hovered
-      })
-      .onNodeClick((node) => {
-        if (node.kind === "sense") {                           // a sense → ripple + fade everything else
-          if (tourStepRef.current < 0 && lensesRef.current?.has("ripple")) fireRipple(node.id, true);   // don't let a ripple fight the tour spotlight
-          if (G.zoomToFit) G.zoomToFit(1200, 70);
-          return;
-        }
-        if (expandedRef.current.has(node.id)) collapse(node.id); else expand(node);
-        const d = 80, r = 1 + d / Math.hypot(node.x || 1, node.y || 1, node.z || 1);
-        G.cameraPosition({ x: (node.x || 0) * r, y: (node.y || 0) * r, z: (node.z || 0) * r }, node, 1200);
-      })
-      .onNodeDragEnd((node) => {
-        node.fx = undefined; node.fy = undefined; node.fz = undefined;
-        if (G.d3ReheatSimulation) G.d3ReheatSimulation();
-      });
+      .enableNodeDrag(false)
+      .onNodeHover((x) => { el.style.cursor = x ? "pointer" : ""; if (st.focus || tourRef.current >= 0) return; light(x); say(x); })
+      .onLinkHover((l) => { if (st.focus || tourRef.current >= 0) return; if (l?.kind === "ripple") setRead({ edge: l.e }); else if (l?.kind === "door") setRead({ door: l }); else if (l?.kind === "lever") setRead({ leverLink: l }); })
+      .onNodeClick((x) => { if (x.kind === "room") toggleRoom(x); else if (x.kind === "sense") focusSense(st.focus === x.s ? null : x.s); })
+      .onBackgroundClick(() => { if (st.focus) focusSense(null); })
+      .warmupTicks(200).cooldownTicks(Infinity).d3AlphaMin(0)
+      .graphData(data);
+    st.g = g;
+    g.renderer().toneMapping = THREE.NoToneMapping;
+    g.renderer().setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    const bloom = new UnrealBloomPass(); bloom.strength = 0.9; bloom.radius = 0.5; bloom.threshold = 0.62; g.postProcessingComposer().addPass(bloom);
+    g.scene().fog = new THREE.FogExp2(0x000000, 0.0012); g.scene().add(new THREE.AmbientLight(0xffffff, 0.9));
+    { const dl = new THREE.DirectionalLight(0xffffff, 1.2); dl.position.set(80, 200, 150); g.scene().add(dl); }
 
-    const bloom = new UnrealBloomPass();
-    bloom.strength = 0.9; bloom.radius = 0.85; bloom.threshold = 0.05;
-    G.postProcessingComposer().addPass(bloom);
-    G.scene().fog = new FogExp2(0x0d0d0d, 0.0009);
+    // ── the rules, as soft forces: strata (levers above, senses, rooms below), sense ring,
+    // levers near the senses they move and the rooms they could help ──
+    const Y = { lever: 70, sense: 0, room: -70 };
+    const custom = (fn) => { let ns = []; const f = (alpha) => fn(ns, alpha); f.initialize = (x) => { ns = x; }; return f; };
+    g.d3Force("strata", custom((ns, a) => { const k = RULES.layers * 0.3 * a; ns.forEach((x) => { const t = Y[x.kind]; if (t !== undefined) x.vy += (t - x.y) * k; }); }));
+    g.d3Force("ring", custom((ns, a) => { const k = 0.18 * a; ns.forEach((x) => { if (x.kind !== "sense") return; const q = ang(SENSES.indexOf(x.s)); x.vx += (95 * Math.cos(q) - x.x) * k; x.vz += (95 * Math.sin(q) - x.z) * k; }); }));
+    g.d3Force("home", custom((ns, a) => { const byId = new Map(ns.map((x) => [x.id, x])); const k = 0.04 * a;
+      ns.forEach((x) => { if (x.kind !== "lever") return; let cx = 0, cz = 0; x.rows.forEach(([, s]) => { const t = byId.get(`sense:${s}`); if (t) { cx += t.x; cz += t.z; } }); cx /= x.rows.length; cz /= x.rows.length;
+        x.vx += (cx * 1.25 - x.x) * k; x.vz += (cz * 1.25 - x.z) * k; }); }));
+    g.d3Force("help", custom((ns, a) => { const byId = new Map(ns.map((x) => [x.id, x])); const k = 0.05 * a;
+      ns.forEach((x) => { if (x.kind !== "lever" || !x.helps.length) return; let cx = 0, cz = 0; x.helps.forEach((h) => { const r = byId.get(h); if (r) { cx += r.x; cz += r.z; } }); cx /= x.helps.length; cz /= x.helps.length;
+        x.vx += (cx - x.x) * k; x.vz += (cz - x.z) * k; }); }));
+    g.d3Force("charge").strength((x) => (x.kind === "score" ? 0 : -45 * (x.imp || 1)));
+    g.d3Force("link").distance((l) => l.kind === "ripple" ? 120 - l.e.count * 7 : l.kind === "short" ? 55 : l.kind === "lever" ? 45 : l.kind === "door" ? 26 : 30)
+      .strength((l) => l.kind === "short" ? 0.02 + l.def * 0.55 : l.kind === "ripple" || l.kind === "door" ? 0.12 : ["has", "tie", "inner", "shared"].includes(l.kind) ? 0 : 0.05);
+    g.d3VelocityDecay(0.35);
 
-    G.d3Force("charge").strength(-100);
-    const lf = G.d3Force("link"); if (lf) lf.distance((l) => (l.kind === "coupling" ? 70 : 30)).strength(0.08);
-    G.d3Force("cluster", clusterForce({ strength: 0.22, getGroup: (n) => n.group, anchors: SENSE_ANCHORS }));
-    G.d3VelocityDecay(0.4);
-    G.cooldownTicks(300);
-    G.onEngineTick(() => recomputeCentroids(G.graphData().nodes, centroidsRef.current));
-
-    graphRef.current = G;
-    const resize = () => G.width(el.clientWidth).height(el.clientHeight);
-    resize();
-    window.addEventListener("resize", resize);
-    return () => {
-      window.removeEventListener("resize", resize);
-      if (hoverIvRef.current) clearInterval(hoverIvRef.current);
-      clearRipple();
-      try { G._destructor && G._destructor(); } catch { /* noop */ }
-      if (el) el.replaceChildren();
+    // ── render control: still frames when slow or under reduced motion ──
+    let pauseT = 0;
+    const pause = () => { g.pauseAnimation(); st.paused = true; };      // the frame loop below stops with it
+    const kick = (ms = 400) => {
+      if (!(st.degraded || rm)) return;
+      g.resumeAnimation(); st.paused = false; if (!st.raf) st.raf = requestAnimationFrame(loop);
+      clearTimeout(pauseT); pauseT = setTimeout(pause, ms);
     };
-  }, []);
+    st.kick = kick;
+    ["pointerdown", "wheel", "pointermove"].forEach((ev) => el.addEventListener(ev, () => { if (ev !== "pointermove" || st.dragging) kick(); }, { passive: true }));
+    el.addEventListener("pointerdown", () => { st.dragging = true; }); window.addEventListener("pointerup", st.onUp = () => { st.dragging = false; });
 
-  // (re)build data on lens / turn change — reset expansion + seed at anchors
-  useEffect(() => {
-    const G = graphRef.current; if (!G) return;
-    clearRipple();
-    expandedRef.current = new Set();
-    ownersRef.current = new Map();
-    const ctx = buildContext(turn, persona);
-    ctxRef.current = ctx;
-    const data = buildRelationshipGraph(turn, persona, lenses);
-    const j = () => (Math.random() - 0.5) * 28;
-    data.nodes.forEach((n) => { const a = SENSE_ANCHORS[n.group]; if (a) { n.x = a.x + j(); n.y = a.y + j(); n.z = a.z + j(); } });
-    G.graphData(data);
-  }, [lenses, turn, persona]);
+    // ── the loop: billboard faces, nebula motion, burst choreography, ripple dots ──
+    const _q = new THREE.Quaternion(); const pulses = pulseSystem(g.scene()); st.pulses = pulses;
+    let acc = 1.5, last = performance.now(), ema = 16, frames = 0; const T0 = performance.now();
+    const place = (x, now) => {           // open rooms: score nodes pinned on the burst curve
+      const o = st.open.get(x.id); if (!o) return;
+      const e = (now - o.t0) / 1000; const dist = 14 + x.failing.length;
+      o.scores.forEach((sn, i) => {
+        let p;
+        if (o.closing) { p = 1 - easeInBack(clamp01((e - (5 - i) * 0.05) / 0.45)); }
+        else p = rm || st.degraded ? 1 : easeOutBack(clamp01((e - 0.2 - i * 0.07) / 0.6));
+        const dir = SENSE_DIR[i]; sn.fx = x.x + dir.x * dist * p; sn.fy = x.y + 10 + dir.y * dist * p; sn.fz = x.z + dir.z * dist * p;
+        if (sn.__obj) sn.__obj.scale.setScalar(Math.max(0.01, o.closing ? 0.3 + 0.7 * p : p));
+      });
+      const blob = x.__obj?.userData.blob;
+      if (blob) {
+        if (o.closing) { const re = clamp01((e - 0.55) / 0.45); blob.scale.setScalar(0.3 + 0.7 * easeOutBack(re, 2.2)); }
+        else if (rm || st.degraded) blob.scale.setScalar(0.35);
+        else if (e < 0.15) { const sq = e / 0.15; blob.scale.set(1 + 0.14 * sq, 1 - 0.2 * sq, 1 + 0.14 * sq); }
+        else blob.scale.setScalar(Math.max(0.35, 1.12 - 0.82 * easeOutBack(clamp01((e - 0.15) / 0.3), 1.2)));
+      }
+      if (o.closing && e > 1.0) finishClose(x);
+    };
+    const loop = () => {
+      const now = performance.now(); const dt = (now - last) / 1000; last = now;
+      if (dt < 0.25) { if (frames > 0) ema = ema * 0.94 + dt * 1000 * 0.06; frames++; }   // gaps (hidden tab) aren't slowness
+      if (!st.degraded && !rm && frames > 20 && ema > 30) { st.degraded = true; pulses.clear(); document.body.classList.add("is-still"); st.open.forEach((_, id) => { const x = g.graphData().nodes.find((n) => n.id === id); if (x) place(x, now); }); kick(600); }
+      const q = g.camera().quaternion; const t = (now - T0) / 1000; const moving = !(st.degraded || rm);
+      g.graphData().nodes.forEach((x) => {
+        const o = x.__obj; if (!o) return;
+        const f = o.userData.face; if (f) { o.getWorldQuaternion(_q); f.quaternion.copy(_q.invert().multiply(q)); }
+        if (moving) o.userData.tick?.(t);
+        if (x.kind === "room") place(x, now);
+      });
+      if (moving) {
+        pulses.tick(dt); acc += dt;
+        if (acc > 1.6) {
+          acc = 0;
+          g.graphData().links.forEach((l) => {
+            if (!l.__curve) return;
+            const col = l.e && (l.e.meanDelta ?? l.e.delta) < 0 ? STATUS.fail : STATUS.pass;
+            if (l.kind === "inner") { for (let k = 0; k < 4; k++) pulses.spawn(l.__curve, col, 0.25 + Math.abs(l.e.delta) * 6, 0.8 - k * 0.15, k * 0.022); return; }
+            if (l.kind !== "ripple" || (st.focus && l.e.from !== st.focus)) return;
+            for (let i = 0; i < l.e.count; i++) for (let k = 0; k < 4; k++) pulses.spawn(l.__curve, col, 0.2 + Math.abs(l.e.meanDelta) * 6, 1 - k * 0.2, i * 0.09 + k * 0.022);
+          });
+        }
+      }
+      st.raf = st.paused ? 0 : requestAnimationFrame(loop);
+    };
+    st.raf = requestAnimationFrame(loop);
+    if (rm) pauseT = setTimeout(pause, 800);
 
-  // concept (fibers-only) toggle — hide nodes, max out the fibers (all lenses) for the
-  // dense tractography read; restore the prior lenses on exit. Re-create link bundles
-  // so the higher fiber count (K) takes effect.
-  useEffect(() => {
-    const G = graphRef.current; if (!G) return;
-    if (concept) {
-      prevLensesRef.current = lenses;
-      const all = new Set(LENSES.map((L) => L.key));
-      if ([...all].some((k) => !lenses.has(k))) setLenses(all);
-      else G.linkThreeObject(G.linkThreeObject());
-    } else if (prevLensesRef.current) {
-      const prev = prevLensesRef.current; prevLensesRef.current = null;
-      setLenses(prev);
-    } else {
-      G.linkThreeObject(G.linkThreeObject());
-    }
-    if (G.nodeVisibility) G.nodeVisibility(G.nodeVisibility());
-  }, [concept]);
+    // ── light a node + its neighbours, dim the rest ──
+    const setFade = (obj, f) => obj.traverse((m) => { if (!m.material) return; if (m.material.uniforms?.fade) m.material.uniforms.fade.value = f; else if (m.userData.o0 !== undefined) m.material.opacity = m.userData.o0 * f; });
+    const paint = () => {
+      const on = hl.on;
+      g.graphData().nodes.forEach((x) => x.__obj && setFade(x.__obj, !on || hl.nodes.has(x) ? 1 : 0.12));
+      g.graphData().links.forEach((l) => { if (l.__line) l.__line.material.opacity = !on || hl.links.has(l) ? Math.min(1, l.__line.userData.o0 * (on ? 2 : 1)) : l.__line.userData.o0 * 0.1; });
+      kick();
+    };
+    const light = (x, keep) => {
+      hl.nodes.clear(); hl.links.clear(); hl.on = !!x;
+      if (x) { hl.nodes.add(x); g.graphData().links.forEach((l) => { if ((l.source === x || l.target === x) && (!keep || keep(l))) { hl.links.add(l); hl.nodes.add(l.source); hl.nodes.add(l.target); } }); }
+      paint();
+    };
+    const spotlight = (kind) => {             // tour beats: light one kind of thing
+      hl.nodes.clear(); hl.links.clear(); hl.on = kind !== "all";
+      g.graphData().nodes.forEach((x) => { if (x.kind === kind || (kind === "ripple" && x.kind === "sense")) hl.nodes.add(x); });
+      g.graphData().links.forEach((l) => { if ((kind === "ripple" && l.kind === "ripple") || (kind === "lever" && l.kind === "lever") || (kind === "room" && l.kind === "door")) hl.links.add(l); });
+      paint();
+    };
+    st.spotlight = spotlight;
+    const say = (x) => setRead(!x ? null : x.kind === "room" ? { room: x } : x.kind === "lever" ? { lever: x }
+      : x.kind === "sense" ? { sense: x.s, outs: data0.events.filter((e) => e.from === x.s), ins: data0.events.filter((e) => e.to === x.s) }
+        : x.kind === "score" ? { score: x } : null);
+    const focusSense = (s) => { st.focus = s; pulses.clear(); acc = 1.6; const x = s && g.graphData().nodes.find((y) => y.id === `sense:${s}`); light(x || null, (l) => l.kind === "ripple" || l.kind === "short"); say(x || null); };
 
-  // ripple Play loop — overview + cycle ambient ripples (no fade), worst senses first
-  useEffect(() => {
-    if (!playing) { clearRipple(); return; }
-    const G = graphRef.current, ctx = ctxRef.current;
-    if (!G || !ctx) return;
-    if (G.zoomToFit) G.zoomToFit(1000, 70);
-    const sources = new Set((ctx.events || []).map((e) => e.from));
-    const order = SENSES.filter((s) => sources.has(s)).sort((a, b) => (ctx.fail?.[b] || 0) - (ctx.fail?.[a] || 0));
-    if (!order.length) return;
-    let i = 0;
-    const fireNext = () => { fireRipple(`sense:${order[i % order.length]}`); i += 1; };
-    const start = setTimeout(fireNext, 600);
-    const iv = setInterval(fireNext, 2600);
-    return () => { clearTimeout(start); clearInterval(iv); };
-  }, [playing]);
+    // ── open rooms in place ──
+    const doorPairs = data0.links.filter((l) => l.kind === "door").map((l) => ({ a: l.source, b: l.target, c: l.conflicts }));
+    const addOpen = (x, nodes, links) => {
+      const r = x.r; const key = r.roomId ?? r.roomName; const scores = [];
+      SENSES.forEach((s) => {
+        const v = r.comfortScores?.[s] ?? 0;
+        const sn = { id: `score:${key}:${s}`, kind: "score", s, v, r, parent: x.id, fx: x.x, fy: x.y, fz: x.z, x: x.x, y: x.y, z: x.z };
+        nodes.push(sn); scores.push(sn);
+        links.push({ source: x.id, target: sn.id, kind: "has", s, owner: x.id });
+        links.push({ source: sn.id, target: `sense:${s}`, kind: "tie", s, owner: x.id });
+      });
+      const re = roomEvents(r);
+      re.forEach((e) => { const mutual = re.some((y) => y.from === e.to && y.to === e.from);
+        links.push({ source: `score:${key}:${e.from}`, target: `score:${key}:${e.to}`, kind: "inner", e, mutual, side: [e.from, e.to].sort()[0] === e.from ? 1 : -1, owner: x.id }); });
+      doorPairs.forEach((d) => { const other = d.a === x.id ? d.b : d.b === x.id ? d.a : null; if (!other || !st.open.has(other) || st.open.get(other).closing) return;
+        const okey = other.slice(5); d.c.forEach((s) => links.push({ source: `score:${key}:${s}`, target: `score:${okey}:${s}`, kind: "shared", s, owner: x.id, owner2: other })); });
+      st.open.set(x.id, { t0: performance.now(), scores, closing: false });
+    };
+    const finishClose = (x) => {
+      const cur = g.graphData(); st.open.delete(x.id);
+      g.graphData({ nodes: cur.nodes.filter((y) => y.parent !== x.id), links: cur.links.filter((l) => l.owner !== x.id && l.owner2 !== x.id) });
+      x.__obj?.userData.blob?.scale.setScalar(1);
+    };
+    const closeRoom = (x) => { const o = st.open.get(x.id); if (!o || o.closing) return; if (rm || st.degraded) { finishClose(x); kick(); return; } o.closing = true; o.t0 = performance.now(); };
+    const toggleRoom = (x) => {
+      pulses.clear(); acc = 1.6;
+      if (st.open.has(x.id) && !st.open.get(x.id).closing) { closeRoom(x); setRead(null); kick(1400); return; }
+      const cur = g.graphData(); const nodes = [...cur.nodes], links = [...cur.links]; addOpen(x, nodes, links); g.graphData({ nodes, links });
+      setRead({ open: x, ev: roomEvents(x.r) }); kick(1600);
+    };
+    st.openAll = (on) => {
+      const roomsN = g.graphData().nodes.filter((y) => y.kind === "room");
+      if (!on) { roomsN.forEach((x) => st.open.has(x.id) && closeRoom(x)); kick(1400); return; }
+      const cur = g.graphData(); const nodes = [...cur.nodes], links = [...cur.links];
+      roomsN.forEach((x) => { if (!st.open.has(x.id)) addOpen(x, nodes, links); });
+      g.graphData({ nodes, links }); pulses.clear(); acc = 1.6; kick(1600);
+    };
+    st.toggleRoom = toggleRoom;
 
-  // first open of the galaxy → auto-play the orientation tour once (remembered)
+    g.cameraPosition({ x: 0, y: 190, z: 300 }, { x: 0, y: -10, z: 0 }, 0);
+    const fit = (ms) => { if (!el.clientWidth) return; g.zoomToFit(ms, 20, (y) => y.kind !== "lever"); kick(ms + 400); };
+    const fitT = setTimeout(() => fit(rm ? 0 : 900), 300);
+    let sized = false;
+    const ro = new ResizeObserver(() => { if (!el.clientWidth) return; g.width(el.clientWidth).height(el.clientHeight); if (!sized) { sized = true; fit(0); } kick(); }); ro.observe(el);
+    const onKey = (e) => { if (e.key === "Escape") { if (st.open.size) st.openAll(false); else focusSense(null); } };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      cancelAnimationFrame(st.raf); clearTimeout(pauseT); clearTimeout(fitT); ro.disconnect(); window.removeEventListener("keydown", onKey); window.removeEventListener("pointerup", st.onUp);
+      document.body.classList.remove("is-still");
+      try { pulses.dispose(); bloom.dispose(); g._destructor(); g.renderer().forceContextLoss(); g.renderer().dispose(); } catch { /* noop */ }
+      el.replaceChildren();
+    };
+  }, [data0]);
+
+  // first open → the short tour once (remembered); "?" replays it
   useEffect(() => {
     let seen = true;
     try { seen = !!localStorage.getItem(GUIDE_SEEN_KEY); localStorage.setItem(GUIDE_SEEN_KEY, "1"); } catch { seen = false; }
     if (!seen) setTourStep(0);
   }, []);
+  useEffect(() => { S.current.spotlight?.(tourStep >= 0 ? TOUR[tourStep].focus : "all"); }, [tourStep]);
 
-  // drive the spotlight from the active tour beat (and recenter as the tour opens)
-  useEffect(() => {
-    if (tourStep < 0) { if (spotlightRef.current) applySpotlight("all"); return; }   // only clear a tour-owned spotlight, never a ripple's
-    const beat = GALAXY_GUIDE.tour[tourStep];
-    if (tourStep === 0 && graphRef.current?.zoomToFit) graphRef.current.zoomToFit(900, 80);
-    applySpotlight(beat?.focus);
-  }, [tourStep]);
-
-  const TOUR_TOTAL = GALAXY_GUIDE.tour.length;
-  const nextBeat = () => setTourStep((s) => (s >= TOUR_TOTAL - 1 ? -1 : s + 1));
-  const backBeat = () => setTourStep((s) => Math.max(0, s - 1));
-  const endTour = () => setTourStep(-1);
-  const replayTour = () => { setGuideOn(true); setReadout(null); setTourStep(0); };
-  const hideGuide = () => { setGuideOn(false); setTourStep(-1); setReadout(null); };
-  const lensReadout = (k) => () => setReadout(GALAXY_GUIDE.control(k));
-  const clearReadout = () => setReadout(null);
-
-  const toggleLens = (k) => setLenses((prev) => { const next = new Set(prev); next.has(k) ? next.delete(k) : next.add(k); return next; });
-  const recenter = () => { const G = graphRef.current; if (G && G.zoomToFit) G.zoomToFit(800, 60); };
-
+  const n = data0.rooms.length;
+  const rel = (e, k, cnt = true) => (
+    <div key={k ?? e.from + e.to} className="gx-rel">
+      <span style={{ color: SC[e.from] }}>{SI[e.from]} {WORD[e.from]}</span>
+      <span style={{ color: (e.meanDelta ?? e.delta) < 0 ? STATUS.fail : STATUS.pass }}> {(e.meanDelta ?? e.delta) < 0 ? "lowers" : "raises"} </span>
+      <span style={{ color: SC[e.to] }}>{SI[e.to]} {WORD[e.to]}</span>{cnt && <span className="gx-mut"> · {e.count}/{n}</span>}
+    </div>
+  );
+  const beat = tourStep >= 0 ? TOUR[tourStep] : null;
   return (
     <div className="galaxy-overlay">
-      <div className="galaxy-canvas" ref={mountRef} />
-
+      <div className="galaxy-canvas" ref={mount} />
       <div className="galaxy-top">
         <span className="galaxy-title">relationship galaxy</span>
         <div className="galaxy-levels">
-          {LENSES.map((L) => (
-            <button key={L.key} className={"galaxy-lv" + (lenses.has(L.key) ? " on" : "")} title={L.desc}
-              onMouseEnter={lensReadout(L.key)} onMouseLeave={clearReadout} onClick={() => toggleLens(L.key)}>{L.label}</button>
-          ))}
-          <button className={"galaxy-lv galaxy-play" + (playing ? " on" : "")} disabled={!lenses.has("ripple")}
-            title={lenses.has("ripple") ? "" : "turn on the ripple lens first"}
-            onMouseEnter={lensReadout("play")} onMouseLeave={clearReadout} onClick={() => setPlaying((p) => !p)}>{playing ? "⏸ ripple" : "▶ ripple"}</button>
+          <button className={"galaxy-lv" + (allOpen ? " on" : "")} onClick={() => { const v = !allOpen; setAllOpen(v); S.current.openAll?.(v); }}>{allOpen ? "close all" : "open all"}</button>
+          <button className={"galaxy-lv" + (tourStep >= 0 ? " on" : "")} title="replay the tour" onClick={() => setTourStep(0)}>?</button>
         </div>
-        <button className={"galaxy-lv" + (concept ? " on" : "")} title="fiber view — bundles only, nodes dissolved"
-          onMouseEnter={lensReadout("fiber")} onMouseLeave={clearReadout} onClick={() => setConcept((c) => !c)}>fiber</button>
-        <button className={"galaxy-lv" + (guideOn && tourStep >= 0 ? " on" : "")} title="what am I looking at? — replay the guide" onClick={replayTour}>?</button>
-        <button className="galaxy-lv" title="recenter" onClick={recenter}>⤢</button>
-        <button className="galaxy-close" onClick={onClose}>×</button>
+        <button className="galaxy-close" onClick={onClose} aria-label="close">×</button>
       </div>
 
-      <div className="galaxy-legend">
-        <button className="galaxy-legend-toggle" onClick={() => setLegendOpen((o) => !o)}>{legendOpen ? "legend ▾" : "legend ▸"}</button>
-        {legendOpen && (
-          <div className="galaxy-legend-body">
-            {GALAXY_LEGEND.map(([k, v]) => (
-              <div className="galaxy-legend-row" key={k}><span className="galaxy-legend-key">{k}</span><span>{v}</span></div>
-            ))}
-            <div className="galaxy-legend-row" style={{ marginTop: 8 }}><span className="galaxy-legend-key" style={{ textTransform: "uppercase", letterSpacing: ".12em" }}>lenses</span><span /></div>
-            {LENSES.map((L) => (
-              <div className="galaxy-legend-row" key={L.key}><span className="galaxy-legend-key">{L.label}</span><span>{L.desc}</span></div>
-            ))}
-            <div className="galaxy-hint">click a node to expand · click a sense to ripple · drag a node, it springs back</div>
+      <div className="gx-read">
+        {!read && <span className="gx-mut">hover anything · click a room · click a sense</span>}
+        {read?.edge && rel(read.edge)}
+        {read?.door && <><div>{read.door.door || "door"}</div><div className="gx-mut">{read.door.conflicts.length ? <>fails across it: {read.door.conflicts.map((s) => <span key={s} style={{ color: SC[s] }}>{SI[s]} {WORD[s]} </span>)}</> : "nothing fails across it"}</div></>}
+        {read?.leverLink && <div>{read.leverLink.source.lv} <span style={{ color: SIGN_COLOR[read.leverLink.sign] }}>{read.leverLink.sign === "+" ? "raises" : read.leverLink.sign === "-" ? "lowers" : "trades off"}</span> <span style={{ color: SC[read.leverLink.s] }}>{SI[read.leverLink.s]} {WORD[read.leverLink.s]}</span></div>}
+        {read?.room && <><div>{read.room.r.roomName} <span className="gx-mut">{(read.room.r.overallScore ?? 0).toFixed(2)}</span></div>{read.room.failing.length > 0 && <div className="gx-mut">below you: {read.room.failing.map((s) => <span key={s} style={{ color: SC[s] }}>{SI[s]} </span>)}</div>}</>}
+        {read?.lever && <><div>{read.lever.lv}</div>{read.lever.rows.map(([, s, sign]) => <div key={s}><span style={{ color: SIGN_COLOR[sign] }}>{sign === "-" ? "−" : sign} </span><span style={{ color: SC[s] }}>{SI[s]} {WORD[s]}</span></div>)}</>}
+        {read?.score && <div>{read.score.r.roomName} · <span style={{ color: SC[read.score.s] }}>{SI[read.score.s]} {WORD[read.score.s]}</span> <span style={{ color: read.score.v < data0.thr(read.score.s) ? STATUS.fail : undefined }}>{read.score.v.toFixed(2)}</span></div>}
+        {read?.sense && <><div style={{ color: SC[read.sense] }}>{SI[read.sense]} {WORD[read.sense]}</div>{read.outs.map((e) => rel(e))}{read.ins.map((e) => rel(e))}{!read.outs.length && !read.ins.length && <div className="gx-mut">no ripple computed</div>}</>}
+        {read?.open && <><div>{read.open.r.roomName} <span className="gx-mut">{(read.open.r.overallScore ?? 0).toFixed(2)}</span></div>{read.open.ev.length ? read.open.ev.map((e, i) => rel(e, i, false)) : <div className="gx-mut">no ripple here</div>}</>}
+      </div>
+
+      <div className="gx-legend" aria-label="legend">
+        <div className="gx-legend-senses">{SENSES.map((s) => <span key={s} style={{ color: SC[s] }}>{SI[s]} {WORD[s]}</span>)}</div>
+        <div>cloud = sense · size = rooms below you</div>
+        <div>blob = room · cube = lever</div>
+        <div>dots = cause → effect · <span style={{ color: STATUS.fail }}>lowers</span> / <span style={{ color: STATUS.pass }}>raises</span></div>
+      </div>
+
+      {beat && (
+        <div className="galaxy-guide">
+          <div className="galaxy-guide-card">
+            <div className="galaxy-guide-title">{beat.title}</div>
+            <div className="galaxy-guide-body">{beat.body}</div>
+            <div className="galaxy-guide-controls">
+              <button className="galaxy-guide-btn" onClick={() => setTourStep(-1)}>skip</button>
+              <div className="galaxy-guide-dots" aria-hidden="true">{TOUR.map((_, i) => <span key={i} className={"galaxy-guide-dot" + (i === tourStep ? " on" : "")} />)}</div>
+              <button className="galaxy-guide-btn" onClick={() => setTourStep((s) => Math.max(0, s - 1))} disabled={tourStep === 0}>back</button>
+              <button className="galaxy-guide-btn is-primary" onClick={() => setTourStep((s) => (s >= TOUR.length - 1 ? -1 : s + 1))}>{tourStep === TOUR.length - 1 ? "done" : "next →"}</button>
+            </div>
           </div>
-        )}
-      </div>
-
-      <AnimatePresence>
-        {guideOn && (
-          <GalaxyNarrator
-            key="galaxy-guide"
-            tour={tourStep >= 0 ? { index: tourStep, total: TOUR_TOTAL, beat: GALAXY_GUIDE.tour[tourStep] } : null}
-            readout={readout}
-            idle={GALAXY_GUIDE.idle}
-            onNext={nextBeat}
-            onBack={backBeat}
-            onSkip={endTour}
-            onHide={hideGuide}
-          />
-        )}
-      </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }

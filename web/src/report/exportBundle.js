@@ -1,20 +1,20 @@
 import * as api from "../api/client.js";
-import { buildRelationshipGraph, LENSES } from "../lib/relationshipGraph.js";
+import { buildGalaxy } from "../galaxy/galaxyGraph.js";
 
 // JSON bundle export — the "real tool" artifact: the layout, its comfort scores, topology graph, galaxy graph,
 // conflicts, suggestions, and the per-room render prompts, in one downloadable file.
 // Pure client; layout comes from /api/layout, the analysis comes off the turn.
 function parse(s) { try { return s ? JSON.parse(s) : null; } catch { return null; } }
 
-// The galaxy's nodes/links with every lens on, data fields only (no draw styling).
+// The galaxy's nodes/links, data fields only (no draw state).
 const idOf = (x) => (x && typeof x === "object" ? x.id : x);
 function galaxyGraph(turn, persona) {
-  const { nodes, links } = buildRelationshipGraph(turn, persona, LENSES.map((l) => l.key));
+  const { nodes, links } = buildGalaxy(turn, persona);
   return {
-    nodes: nodes.map(({ id, kind, label, sense, group, fail, overall, roomId, degree, betweenness, bridge, isolated, rtype }) =>
-      ({ id, kind, label, sense, group, fail, overall, roomId, degree, betweenness, bridge, isolated, rtype })),
-    links: links.map(({ source, target, kind, sense, sign, mech, basis, door }) =>
-      ({ source: idOf(source), target: idOf(target), kind, sense, sign, mech, basis, door })),
+    nodes: nodes.map((n) => ({ id: n.id, kind: n.kind, sense: n.s, lever: n.lv, room: n.r?.roomName, roomType: n.rtype,
+      roomsBelowYou: n.fail, belowYou: n.failing })),
+    links: links.map((l) => ({ source: idOf(l.source), target: idOf(l.target), kind: l.kind, sense: l.s, sign: l.sign, tier: l.tier, mech: l.mech,
+      door: l.door, conflicts: l.conflicts, rooms: l.e?.count, meanDelta: l.e?.meanDelta, mutual: l.mutual })),
   };
 }
 

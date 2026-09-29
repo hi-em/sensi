@@ -87,7 +87,8 @@ const live = new Set(); let raf = 0; const T0 = performance.now();
 let last = 0, ema = 16, frames = 0;
 export const perf = { degraded: false };
 export function frameTick(now) {            // shared by other canvases that want the same rule
-  if (last) { ema = ema * 0.94 + (now - last) * 0.06; frames++; } last = now;
+  const dt = last ? now - last : 0; last = now;
+  if (dt && dt < 250) { ema = ema * 0.94 + dt * 0.06; frames++; }   // gaps (hidden tab) aren't slowness
   if (frames > 20 && ema > 30 && !perf.degraded) { perf.degraded = true; document.body.classList.add("is-still"); }
   return perf.degraded;
 }

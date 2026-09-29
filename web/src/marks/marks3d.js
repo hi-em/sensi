@@ -33,11 +33,11 @@ export function senseNebula(s, radius, { level = 1, below = false, variant = "fu
   parts.forEach((p, i) => { pos.set([p.x * radius, p.y * radius, p.z * radius], i * 3); seed[i] = p.s; });
   const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("seed", new THREE.BufferAttribute(seed, 1));
   const mat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-    uniforms: { t: { value: 0 }, c: { value: new THREE.Color(SC[s]) }, px: { value: Math.min(2, window.devicePixelRatio || 1) }, lvl: { value: level } },
+    uniforms: { t: { value: 0 }, c: { value: new THREE.Color(SC[s]) }, px: { value: Math.min(2, window.devicePixelRatio || 1) }, lvl: { value: level }, fade: { value: 1 } },
     vertexShader: `uniform float t; uniform float px; uniform float lvl; attribute float seed; varying float vA;
       void main(){ vec3 p = position; float a = t * (0.15 + seed * 0.35); float cs = cos(a), sn = sin(a); p.xz = mat2(cs, -sn, sn, cs) * p.xz; p.y += sin(t * 0.8 + seed * 6.28) * 0.25;
         vec4 mv = modelViewMatrix * vec4(p, 1.); gl_Position = projectionMatrix * mv; gl_PointSize = seed > 0.3 + 0.7 * lvl ? 0. : (1.2 + seed * 2.2) * px * (60. / -mv.z); vA = (0.25 + 0.75 * seed) * (0.3 + 0.7 * lvl); }`,
-    fragmentShader: `uniform vec3 c; varying float vA; void main(){ vec2 d = gl_PointCoord - .5; float f = smoothstep(.5, 0., length(d)); gl_FragColor = vec4(c * 1.3, f * vA * 0.55); }` });
+    fragmentShader: `uniform vec3 c; uniform float fade; varying float vA; void main(){ vec2 d = gl_PointCoord - .5; float f = smoothstep(.5, 0., length(d)); gl_FragColor = vec4(c * 1.3, f * vA * 0.55 * fade); }` });
   g.add(new THREE.Points(geo, mat)); g.userData.tick = (t) => { mat.uniforms.t.value = t; };
   const face = senseGlyph(s, new THREE.MeshBasicMaterial({ color: new THREE.Color(SC[s]).multiplyScalar(1.6 * (0.5 + 0.5 * level)) }));
   face.scale.setScalar(radius * 0.7); g.add(face); g.userData.face = face;
@@ -146,11 +146,37 @@ export function roomIcon(type) {
   }
   return g;
 }
+export const ROOM_TYPES = ["bedroom", "kitchen", "living", "dining", "bathroom", "study", "office", "utility", "balcony", "circulation"];
 export function roomNode(room, roomType, radius) {
   const g = new THREE.Group(); const blob = roomBlob(room, radius);
   g.add(blob); g.userData.blob = blob;
-  const ic = roomIcon(roomType); ic.scale.setScalar(radius * 0.85); g.add(ic); g.userData.face = ic;
+  if (ROOM_TYPES.includes(roomType)) {        // unknown type (no topology yet): no icon, never a guessed one
+    const ic = roomIcon(roomType); ic.scale.setScalar(radius * 0.85); g.add(ic); g.userData.face = ic;
+  }
   return g;
+}
+
+// ripple dots: one instanced mesh, each dot rides a curve cause → effect and fades in/out
+export function pulseSystem(scene, { max = 1400, size = 0.75 } = {}) {
+  const geo = new THREE.SphereGeometry(size, 10, 10);
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  const mesh = new THREE.InstancedMesh(geo, mat, max); mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3); mesh.frustumCulled = false; mesh.count = 0; scene.add(mesh);
+  const live = []; const M = new THREE.Matrix4(); const col = new THREE.Color(); const P = new THREE.Vector3(); const S = new THREE.Vector3(); const Q = new THREE.Quaternion();
+  return {
+    spawn(curve, color, speed = 0.4, scale = 1, delay = 0) { if (live.length < max) live.push({ curve, color: new THREE.Color(color), speed, scale, t: -delay }); },
+    clear() { live.length = 0; mesh.count = 0; },
+    tick(dt) {
+      let n = 0;
+      for (let i = live.length - 1; i >= 0; i--) { const p = live[i]; p.t += dt * p.speed; if (p.t >= 1) live.splice(i, 1); }
+      live.forEach((p) => {
+        if (p.t < 0) return; p.curve.getPoint(p.t, P); const f = Math.sin(p.t * Math.PI); S.setScalar(p.scale * (0.4 + f));
+        M.compose(P, Q, S); mesh.setMatrixAt(n, M); col.copy(p.color).multiplyScalar(0.4 + f * 1.4); mesh.setColorAt(n, col); n++;
+      });
+      mesh.count = n; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    },
+    dispose() { scene.remove(mesh); geo.dispose(); mat.dispose(); },
+  };
 }
 
 // ── burst: a room opens into its six scores (constant size; fullness + brightness =
