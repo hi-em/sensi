@@ -36,7 +36,7 @@ reads as "nothing changed." The teaching happens in the **edges**, not the nodes
 | **Scoring** (`comfort/sense_model.py`) | Non-additive (veto floor keeps the aggregate honest) **and symmetric** — a strong sense radiates *comfort* to its `+`-coupled partners, not only discomfort. So an edit moves 2–3 senses, and the change is real but un-gameable. |
 | **Sense hub** (`canvas/SenseHub.jsx`) | Each cross-modal adjustment animates as a pulse travelling source→target — **green for a lift, red for a drag** — with the origin sense node pulsing as it "fires." |
 | **Predictive preview** (`nodes/editing/preview.py`) | A no-commit "what if" — score a hypothetical edit, show the predicted ripple and forecast number, change nothing until the user commits. The agent's forecast and the user's sandbox. |
-| **The Relationship Galaxy** (`docs/adr-relationship-galaxy.md`) | The immersive 3D mode — the *whole* relationship system at once, the full life of the edges. The ripple, flown through. |
+| **The Relationship Galaxy** (`docs/reference/adr-relationship-galaxy.md`) | The immersive 3D mode — the home's computed ripple at once. Click a room to open its six scores. The ripple, flown through. |
 
 ## Vocabulary (keep these phrases)
 

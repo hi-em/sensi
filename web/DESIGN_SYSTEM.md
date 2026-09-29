@@ -109,13 +109,14 @@ mechanism/"why"). Flow + topology edges now render through `GraphEdge` too.
 
 ### `galaxy/` — the Relationship Galaxy (3D explore mode)
 `RelationshipGalaxy` is a **lazy-loaded** full-screen 3D force-directed view (three.js +
-`3d-force-graph` + `three-spritetext` + UnrealBloom) of the *whole* relationship system:
-nodes = senses + rooms + design levers; links = sense↔sense couplings · room→room
-transmission · room→sense problems · lever→sense fixes. Data comes from the pure builder
-`lib/relationshipGraph` (complexity tiers L1/L2/L3). Interactions: orbit/zoom/pan,
-hover-to-highlight + tooltip, click-to-fly, directional particles, bloom. The three.js
-weight is **code-split** (dynamic `import()`), so it never enters the initial bundle. See
-`docs/adr-relationship-galaxy.md`.
+`3d-force-graph` + UnrealBloom) of the home's relationships, on the shared marks
+(`marks/marks3d.js`): sense nebulae, room blobs, lever lanterns. Links come only from model
+output via the pure builder `galaxy/galaxyGraph.js`: the applied sense→sense adjustments
+(`lib/rippleEvents` → `homeEvents`), undirected doors, rooms below threshold, lever→sense.
+Click a room to burst it into its six scores. No text in the scene (glyph legend + short
+tour). Still frame on slow devices / reduced motion; chord + score grid without WebGL. The
+three.js weight is **code-split** (dynamic `import()`). See
+`docs/reference/adr-relationship-galaxy.md`.
 
 **Layer control model.** Three orthogonal control *kinds*, kept visually distinct:
 the **sense selector** (`SenseMixer`, recolors the active lens), the **layer rail**

@@ -1,67 +1,77 @@
 # ADR-001: The Relationship Galaxy (3D explore mode)
 
-**Status:** Accepted · **Date:** 2026-05-31 · **Deciders:** Emilie (product), Claude (impl)
+**Status:** Accepted 2026-05-31 · **Revised** 2026-09-29 · **Deciders:** Emilie (product), Claude (impl)
 
-> Guiding concept: [`concept-the-ripple.md`](concept-the-ripple.md) — *the real lesson
-> lives in the edges: how a change to one sense ripples to another.* The galaxy is that
+> Guiding concept: [`concept-the-ripple.md`](concept-the-ripple.md). The galaxy is the
 > ripple, flown through.
 
 ## Context
-The 2D on-plan graph is the *analysis* surface (precise, geometric). The user wants a
-second, *experiential* mode — an immersive 3D "galaxy" you fly through and get lost in,
-showing the **whole** relationship system at once. It must include all the data the model
-holds (couplings, transmission, room→sense problems, lever→sense fixes, topology metrics,
-mechanism/valence/provenance/magnitude), be fully interactive, and not bloat the app's
-initial load. React 18 + Vite, dark dial aesthetic.
+The 2D plan is the analysis surface. The galaxy is the second, immersive mode: the whole
+home's relationships at once, in 3D. The first version (May) drew every coupling the
+model *could* apply, with text labels, arrows and an L1/L2/L3 complexity dial. It was
+dense, it implied directions the data doesn't have (doors), and it showed rules rather
+than what the model actually computed for this home.
 
 ## Decision
-Build it with **`3d-force-graph`** (Three.js WebGL force-directed graph) + `three-spritetext`
-(labels) + `UnrealBloomPass` (glow), in a **lazy-loaded full-screen overlay**. Render one
-multi-partite graph from a pure data builder (`lib/relationshipGraph.js`); the view
-(`galaxy/RelationshipGalaxy.jsx`) only configures + interacts.
+Keep **`3d-force-graph`** (three.js) + `UnrealBloomPass` in a **lazy-loaded full-screen
+overlay**, but draw **only model output**, on the same marks as the 2D views.
 
-## Options considered
-| Option | Complexity | Effort | Aesthetic | Verdict |
-|---|---|---|---|---|
-| **3d-force-graph** | Med | **Low** | matches inspo (bloom/particles built-in) | ✅ chosen |
-| raw three.js / r3f | High | High | full control | rejected — reinvents force sim + camera + particles |
-| 2.5D / stay 2D | Low | Low | no immersion | rejected — user explicitly wants 3D depth |
+**Data.** One pure builder, `galaxy/galaxyGraph.js` → `buildGalaxy(turn, persona)`:
 
-## Data model (one graph, all data)
-**Nodes:** `sense:*` (6, hue+glyph, size = rooms failing) · `room:*` (size = degree, color =
-zone, carries topology metrics) · `lever:*` (the actionable LEVER_SENSE levers).
-**Links (4 types):**
-- `coupling` sense↔sense (`SENSE_SENSE`) — universal; sign, tier, mechanism.
-- `transmission` room→room (doors / `graph_data.edges`) — directional bleed, worst sense.
-- `exhibits` room→sense — which rooms drive which sense problems (score < threshold).
-- `lever` lever→sense (`LEVER_SENSE`) — how to fix.
-
-## 3D encoding adaptations (the key design problem)
-3D can't do dashed lines well, and hue is already "which sense," so:
-| Channel | 2D | **3D galaxy** |
+| Node | Mark (`marks/marks3d.js`) | Size |
 |---|---|---|
-| identity | hue | node/link **hue** (sense) |
-| magnitude | width | link **width** |
-| direction/flow | arrow + march | **directional particles** + arrowhead |
-| provenance | solid/dashed/dotted | link **opacity tier** (research 1.0 · physics 0.55 · personality 0.3) + legend |
-| valence | glyph+tint | **arrowhead** + value in hover/click detail (kept out of the hue channel) |
-| importance | size | node **size** + **bloom** picks out hubs |
+| sense (6) | nebula | rooms below your threshold |
+| room | blob + room-type icon | senses below your threshold |
+| lever | glass lantern | senses it moves |
 
-## Interactivity
-Orbit/zoom/pan (built-in) · hover node → highlight neighbours + HTML tooltip (metrics/
-mechanism) · click node → camera flies to it + detail panel · directional particles animate
-flow · **complexity dial L1/L2/L3** filters link types (L1 verified couplings + transmission;
-L2 + inferred + levers + exhibits; L3 + personality + everything). Default **L3** ("the full life").
+| Link | Source | Drawn as |
+|---|---|---|
+| ripple sense→sense | `scores_json.rooms[].adjustments`, grouped per edge (`lib/rippleEvents.js` → `homeEvents`) | fiber + travelling dots, cause → effect; red lowers, green raises; dots = rooms it fired in |
+| door room–room | `graph_data.edges[].transmissive_conflicts` | plain line, **no direction** (the data has none) |
+| short room→sense | score below threshold | faint line |
+| lever→sense | `LEVER_SENSE` table | green raises / red lowers; dashed = not verified |
+
+Nothing is re-derived client-side: if the model didn't emit an adjustment, there is no fiber.
+
+**Layout.** Soft forces, not fixed positions: senses on a ring (chord order), levers
+above, rooms below; levers drift toward the senses they move and the rooms they could help.
+
+**Interaction.** Hover anything → one-line readout (top right). Click a room → it bursts
+into its six score nodes (pinned on the burst curve, fullness = felt score, notch = below
+you) with only that room's own ripple; several can be open; open neighbours share a sense
+across a door when topology flags it. "Open all" / Esc. Click a sense → its ripple only.
+
+**Words.** No text in the scene. A glyph legend on the side, and a 5-beat first-look tour
+(home · senses · rooms · levers · ripple), shown once and replayable from "?".
+
+**Performance / access.**
+- Still frame on slow devices: frame-time average > 30 ms after ~20 frames → animation
+  pauses and resumes only on interaction (gaps > 250 ms, e.g. a hidden tab, are ignored).
+- `prefers-reduced-motion`: laid out, then still.
+- No WebGL: the ripple chord + score grid instead (`marks/Chord.jsx`, `marks/ScoresGrid.jsx`).
+- three.js stays out of the initial bundle (`React.lazy` in `LayoutModeScreen`).
+
+**Export.** `report/exportBundle.js` writes the same `buildGalaxy` output next to
+`graph_data`, so the exported graph and the on-screen galaxy can't disagree.
+
+## What changed from the first version
+| First version (May) | Now |
+|---|---|
+| every possible coupling (`SENSE_SENSE`) | only the adjustments the model applied to this home |
+| text sprites (`three-spritetext`), HTML tooltip | no text in the scene; glyph legend + readout |
+| arrowheads on doors | undirected doors |
+| L1/L2/L3 complexity dial | one view; click to open rooms |
+| own node styles | the shared 2D/3D marks |
+| always animated | still frame on slow devices and reduced motion; 2D fallback without WebGL |
 
 ## Consequences
-- **Easier:** a stunning, complete, navigable view of the model; reuses the relationship grammar.
-- **Harder:** WebGL is heavier; mitigated by **lazy import** (three never enters the initial
-  bundle). Provenance is less crisp in 3D (opacity, not line-style) — documented in-legend.
-- **Revisit:** performance if the showpiece layout grows large (our graph is ~30–50 nodes — fine).
+- **Easier:** the galaxy, chord, grid, ledger and export all read one data structure, so
+  they agree by construction.
+- **Harder:** fewer relationships on screen than the rule table holds; the full rule
+  table lives in `docs/reference/comfort-model-references.md`, not in the galaxy.
+- **Revisit:** a large home (many rooms open at once) on a no-GPU device drops frames
+  before the still-frame rule kicks in.
 
-## Action items
-1. [ ] `npm i three 3d-force-graph three-spritetext`
-2. [ ] `lib/relationshipGraph.js` — pure builder → {nodes, links}
-3. [ ] `galaxy/RelationshipGalaxy.jsx` — lazy full-screen view (config + bloom + interactions + L-dial)
-4. [ ] Launch control in `LayoutModeScreen` (React.lazy + Suspense), gated on a scored turn
-5. [ ] CSS: overlay, controls, tooltip, legend
+## Files
+`web/src/galaxy/galaxyGraph.js` · `web/src/galaxy/RelationshipGalaxy.jsx` ·
+`web/src/marks/marks3d.js` · `web/src/lib/rippleEvents.js` · `web/src/report/exportBundle.js`

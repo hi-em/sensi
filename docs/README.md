@@ -22,7 +22,7 @@ docs/
 - [report-vision-pipeline.md](reference/report-vision-pipeline.md) — the Report and
   Vision pipeline end to end: model, prompts, scoring, before/after, exports.
 - [adr-relationship-galaxy.md](reference/adr-relationship-galaxy.md) — ADR-001, the
-  decision behind the 3D explore mode.
+  3D explore mode: what it draws (model output only) and how it degrades.
 - [graph-relationships-audit.md](reference/graph-relationships-audit.md) — what the model
   knows about relationships versus what the UI shows.
 

@@ -15,5 +15,3 @@ personas/persona.*.local.json
 docs
 final-sensi-concept
 **/*.mp4
-# ...except the mobile gate's loop, which is a served asset, not a source film.
-!web/public/gate-loop.mp4
