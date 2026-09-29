@@ -5,9 +5,10 @@ import GraphEdge from "./GraphEdge.jsx";
 // Unified room-relationship edges — ONE arc per room-pair (centroid→centroid), so
 // structure and flow always align (no door-segment/centroid mismatch):
 //   healthy connection → faint neutral arc.
-//   conflicted        → the SAME arc becomes a colored, animated directional
-//                        arrow (worse→better) for the worst bleeding sense.
-// Every bleeding sense + scores live in the hover tooltip — nothing painted on the
+//   conflicted        → the SAME arc, colored by the worst sense failing on that door.
+//                        No arrow and no motion: topology flags a sense failing on a
+//                        shared door, not a direction.
+// Every failing sense + scores live in the hover tooltip — nothing painted on the
 // canvas to overlap. Prefers backend graph_data.edges (conflict tags), else derives.
 export default function GraphEdges({ roomById, graphData = null, doors = [], focusSense, u, fy, onHoverEdge }) {
   const pairs = (graphData?.edges?.length)
@@ -30,14 +31,11 @@ export default function GraphEdges({ roomById, graphData = null, doors = [], foc
       return { s, sa, sb, worse: Math.min(sa, sb) };
     }).sort((x, y) => x.worse - y.worse);
     const worst = sev[0];
-    const srcIsA = worst.sa <= worst.sb;                    // bleed leaves the worse room
-    const sx = srcIsA ? ax : bx, sy = srcIsA ? ay : by;
-    const tx = srcIsA ? bx : ax, ty = srcIsA ? by : ay;
     const dim = focusSense && !conflicts.includes(focusSense);
 
-    return <GraphEdge key={"e" + i} ax={sx} ay={sy} bx={tx} by={ty} color={SC[worst.s]}
-      width={2 + (1 - worst.worse) * 3} arrow headSize={u * 0.9} curvature={0.16} live opacity={dim ? 0.12 : 0.9}
-      onHover={(ev) => onHoverEdge && onHoverEdge({ x: ev.clientX, y: ev.clientY, kind: "bleed", src: srcIsA ? e.a : e.b, tgt: srcIsA ? e.b : e.a, sev })}
+    return <GraphEdge key={"e" + i} ax={ax} ay={ay} bx={bx} by={by} color={SC[worst.s]}
+      width={2 + (1 - worst.worse) * 3} curvature={0.16} opacity={dim ? 0.12 : 0.9}
+      onHover={(ev) => onHoverEdge && onHoverEdge({ x: ev.clientX, y: ev.clientY, kind: "bleed", a: e.a, b: e.b, sev })}
       onLeave={() => onHoverEdge && onHoverEdge(null)} />;
   });
 }

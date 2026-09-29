@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import * as api from "../api/client.js";
 import { SC, SI, SENSES, scoreColor } from "../lib/constants.js";
-import { SENSE_SENSE, basisBorder } from "../lib/senseModel.js";
+import { basisBorder } from "../lib/senseModel.js";
+import { homeEvents } from "../lib/rippleEvents.js";
 import { VALENCE } from "../lib/relationships.js";
 import { useSelection } from "../lib/selection.jsx";
 import { roomScores, layoutScore } from "../lib/turn.js";
@@ -26,15 +27,14 @@ const sideScores = (deltas, side) => {
   return o;
 };
 
-// Every coupling that touches sense S (skip sign "0"), with the partner + sign +
-// tier + mechanism — i.e. "the ripple of S": what it helps, harms, or trades with.
-function ripplesFor(S) {
-  const out = [];
-  SENSE_SENSE.forEach(([a, b, , sign, tier, mech]) => {
-    if (sign === "0" || (a !== S && b !== S)) return;
-    out.push({ partner: a === S ? b : a, sign, tier, mech });
+// "The ripple of S": only the sense→sense nudges the model computed in this home
+// that start or end at S, with the partner, the realized sign and the room count.
+function ripplesFor(S, rooms) {
+  return homeEvents(rooms).filter((e) => e.from === S || e.to === S).map((e) => {
+    const out = e.from === S, sign = e.meanDelta < 0 ? "-" : "+";
+    const verb = out ? (sign === "-" ? "lowers" : "raises") : (sign === "-" ? "lowered by" : "raised by");
+    return { partner: out ? e.to : e.from, sign, tier: e.tier, mech: e.mechanism, label: `${verb} · ${e.count}` };
   });
-  return out;
 }
 
 /*
@@ -65,9 +65,9 @@ export default function DwellingStory({ turn }) {
   const tone = avg == null ? "reads quiet" : avg >= 0.65 ? "reads largely at ease" : avg >= 0.45 ? "reads mixed" : "reads strained";
   const headline = worstN > 0
     ? `Your home ${tone} — ${worst} is the weakest thread${worstRoom ? `, hardest in the ${worstRoom.roomName}` : ""}.`
-    : `Your home ${tone} — the couplings carry comfort, not drag it.`;
+    : `Your home ${tone}.`;
 
-  const ripples = activeSense ? ripplesFor(activeSense) : [];
+  const ripples = activeSense ? ripplesFor(activeSense, scoreRooms) : [];
 
   // before/after — the biggest-glow-up room, initial (on-disk) → now (current).
   const [cmp, setCmp] = useState({ loading: true, data: null, error: null });
@@ -122,15 +122,15 @@ export default function DwellingStory({ turn }) {
           {activeSense ? (
             <>
               <p className="ds-lesson">
-                the ripple of <span style={{ color: SC[activeSense] }}>{SI[activeSense]} {activeSense}</span> —
-                how it moves the others:
+                the ripple of <span style={{ color: SC[activeSense] }}>{SI[activeSense]} {activeSense}</span> —{" "}
+                {ripples.length ? "computed here:" : "none computed here."}
               </p>
               <div className="ds-ripples">
                 {ripples.map((r, i) => (
                   <div className="ds-ripple-row" key={i}>
                     <span className="ds-ripple-val" style={{ color: VALENCE[r.sign].tint }}>{VALENCE[r.sign].glyph}</span>
                     <span className="ds-ripple-partner" style={{ color: SC[r.partner] }}>{SI[r.partner]} {r.partner}</span>
-                    <span className="ds-ripple-lbl" style={{ color: VALENCE[r.sign].tint }}>{VALENCE[r.sign].label}</span>
+                    <span className="ds-ripple-lbl" style={{ color: VALENCE[r.sign].tint }}>{r.label}</span>
                     <span className="ds-ripple-mech" style={{ borderBottomStyle: basisBorder(r.tier === "verified" ? "research" : "physics") }}>{r.mech}</span>
                   </div>
                 ))}
@@ -142,10 +142,10 @@ export default function DwellingStory({ turn }) {
               {worstN > 0 ? (
                 <p className="ds-lesson">
                   <span style={{ color: SC[worst] }}>{SI[worst]} {worst}</span> is the weakest thread across your home —
-                  failing in {worstN} {worstN === 1 ? "room" : "rooms"}. Lifting it ripples out to its coupled senses.
+                  failing in {worstN} {worstN === 1 ? "room" : "rooms"}.
                 </p>
               ) : (
-                <p className="ds-lesson">no sense is failing across your home — the couplings are carrying comfort, not dragging it.</p>
+                <p className="ds-lesson">no sense is failing across your home.</p>
               )}
               <div className="ds-couplings-hint">tap a sense to trace its ripple · solid = research, dashed = physics</div>
             </>

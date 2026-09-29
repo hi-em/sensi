@@ -3,7 +3,8 @@
 // (see buildContext in relationshipGraph.js). Every child node carries `parent` and
 // every child link carries `owner` (= the clicked node id) so collapse is exact.
 import { SENSES, SC } from "./constants.js";
-import { SENSE_SENSE, LEVER_SENSE } from "./senseModel.js";
+import { LEVER_SENSE } from "./senseModel.js";
+import { roomEvents, valenceColor } from "./rippleEvents.js";
 
 const FG = "rgba(240,237,232,";
 
@@ -31,10 +32,11 @@ export function childrenOf(node, ctx) {
       addLink({ source: node.id, target: id, kind: "has-score", sense: s,
         color: SC[s], width: 1 + (1 - v) * 3, opacity: 0.5, curvature: 0.08 });
     });
-    // the room's own senses talk to each other — its internal sense network (a 3D SenseHub)
-    SENSE_SENSE.forEach(([a, b, dir, sign]) => {
-      addLink({ source: `score:${node.label}:${a}`, target: `score:${node.label}:${b}`, kind: "coupling", sign,
-        color: SC[a], width: 1.2, opacity: 0.45, arrow: dir !== "both", curvature: 0.25 });
+    // the sense→sense nudges the model applied in THIS room (none if nothing fired)
+    roomEvents(r).forEach((e) => {
+      addLink({ source: `score:${node.label}:${e.from}`, target: `score:${node.label}:${e.to}`, kind: "coupling",
+        sign: e.delta < 0 ? "-" : "+", delta: e.delta, count: 1, mech: e.mechanism, basis: e.basis,
+        color: valenceColor(e.delta), width: 1.2, opacity: 0.55, curvature: 0.25 });
     });
     // and each room-sense links to its global sense hub, so multiple expanded rooms
     // interconnect through the senses they share.
@@ -53,9 +55,9 @@ export function childrenOf(node, ctx) {
         color: "rgba(228,230,236,0.92)", val: 6 });
       const conf = e.transmissive_conflicts || [];
       addLink({ source: `room:${node.label}`, target: `room:${nn}`, kind: "adjacency",
-        mech: `door: ${e.door_name || "—"}${conf.length ? " · bleeds " + conf.join(", ") : ""}`,
+        mech: `door: ${e.door_name || "—"}${conf.length ? " · fails across: " + conf.join(", ") : ""}`,
         color: conf.length ? SC[conf[0]] : `${FG}0.3)`, width: conf.length ? 1.8 : 0.8,
-        opacity: 0.55, arrow: !!conf.length, curvature: 0.22 });
+        opacity: 0.55, curvature: 0.22 });
     });
   } else if (node.kind === "sense") {
     const s = node.sense;
@@ -70,11 +72,12 @@ export function childrenOf(node, ctx) {
     LEVER_SENSE.filter((l) => l[1] === s).forEach(([lv, , sign]) => {
       addNode({ id: `lever:${lv}`, kind: "lever", label: lv, group: s, color: "rgba(26,26,30,0.92)", val: 1.5 });
       addLink({ source: `lever:${lv}`, target: `sense:${s}`, kind: "lever", sign,
-        color: `${FG}0.45)`, width: 1, opacity: 0.45, arrow: true, curvature: 0.15 });
+        color: `${FG}0.45)`, width: 1, opacity: 0.45, curvature: 0.15 });
     });
-    SENSE_SENSE.filter(([a, b]) => a === s || b === s).forEach(([a, b, dir, sign]) => {
-      addLink({ source: `sense:${a}`, target: `sense:${b}`, kind: "coupling", sign,
-        color: SC[a], width: 1.6, opacity: 0.6, arrow: dir !== "both", curvature: 0.3 });
+    (ctx.events || []).filter((e) => e.from === s || e.to === s).forEach((e) => {
+      addLink({ source: `sense:${e.from}`, target: `sense:${e.to}`, kind: "coupling", sign: e.meanDelta < 0 ? "-" : "+",
+        delta: e.meanDelta, count: e.count, mech: e.mechanism, basis: e.basis,
+        color: valenceColor(e.meanDelta), width: 1 + Math.min(e.count, 6) * 0.3, opacity: 0.6, curvature: 0.3 });
     });
   } else if (node.kind === "lever") {
     LEVER_SENSE.filter((l) => l[0] === node.label).forEach(([lv, s, sign]) => {

@@ -44,11 +44,11 @@ function PlanTooltip({ info }) {
   if (info.kind === "bleed") {
     return (
       <div className="plan-tooltip" style={{ left: info.x + 14, top: info.y + 14, maxWidth: 210 }}>
-        <div className="plan-tooltip-title">{info.src.name} → {info.tgt.name}</div>
+        <div className="plan-tooltip-title">{info.a.name} · {info.b.name}</div>
         {info.sev.map(({ s, worse }) => (
           <div className="plan-tooltip-row" key={s}><span>{SI[s]} {s}</span><span>{worse.toFixed(2)}</span></div>
         ))}
-        <div className="plan-tooltip-why">transmissive bleed — worse room → better</div>
+        <div className="plan-tooltip-why">failing across this shared door</div>
       </div>
     );
   }

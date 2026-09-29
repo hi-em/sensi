@@ -3,13 +3,14 @@ import { basisDash } from "../lib/senseModel.js";
 import { VALENCE, signOf, edgeWidth } from "../lib/relationships.js";
 import { arc } from "../lib/geometry.js";
 import GraphEdge from "./GraphEdge.jsx";
+import { reducedMotion } from "../lib/rippleEvents.js";
 
 // SenseHub — the focused room's RELATIONSHIPS as a graph, anchored on the plan.
 // Six sense nodes in a ring (hue = sense, size = score, CLICK to solo); edges =
 // that room's real sense→sense cross-modal adjustments, each colored by source,
-// line-styled by provenance, widthed by magnitude, arrow at the target's rim,
-// and marked with a valence glyph (helps/harms/±). Hover an edge → the mechanism.
-// Edges are trimmed to the node rims so arrowheads read; personality/non-sense
+// line-styled by provenance, widthed by magnitude; a valence-coloured dot travels
+// source → target (no arrowheads) and a valence glyph marks it. Hover → the mechanism.
+// Edges are trimmed to the node rims; personality/non-sense
 // adjustments (which would converge at the centre) are left to the FocusCard.
 export default function SenseHub({ room, cx, cy, R, u, activeSense, onSelectSense, onHoverEdge }) {
   if (!room) return null;
@@ -17,6 +18,7 @@ export default function SenseHub({ room, cx, cy, R, u, activeSense, onSelectSens
   const adjustments = (room.adjustments || []).filter((a) => SENSES.includes(a.from) && SENSES.includes(a.sense));
   // Senses that are SOURCES of a ripple this turn — their nodes pulse (a sense "firing").
   const origins = new Set(adjustments.map((a) => a.from));
+  const still = reducedMotion();
 
   const pos = {}, rad = {};
   SENSES.forEach((s, i) => {
@@ -43,8 +45,8 @@ export default function SenseHub({ room, cx, cy, R, u, activeSense, onSelectSens
         return (
           <g key={i} opacity={dim ? 0.15 : 1}>
             <GraphEdge ax={ax} ay={ay} bx={bx} by={by} color={SC[adj.from]} width={edgeWidth(adj.delta)}
-              dash={basisDash(adj.basis)} arrow headSize={u * 0.95} curvature={0.18} hitWidth={6}
-              ripple={!dim} rippleColor={VALENCE[sign].tint} rippleDur={rippleDur} rippleSize={u * 0.5}
+              dash={basisDash(adj.basis)} curvature={0.18} hitWidth={6}
+              ripple={!dim && !still} rippleColor={VALENCE[sign].tint} rippleDur={rippleDur} rippleSize={u * 0.5}
               onHover={(e) => onHoverEdge && onHoverEdge({ x: e.clientX, y: e.clientY, kind: "edge", adj, sign })}
               onLeave={() => onHoverEdge && onHoverEdge(null)} />
             <text x={a.midx} y={a.midy} textAnchor="middle" dominantBaseline="central"
@@ -64,7 +66,7 @@ export default function SenseHub({ room, cx, cy, R, u, activeSense, onSelectSens
             style={onSelectSense ? { cursor: "pointer" } : undefined} opacity={dim ? 0.4 : 1}>
             <circle cx={x} cy={y} r={rad[s] + u * 0.9} fill="transparent" />
             {/* origin pulse — this sense is radiating to its partners this turn */}
-            {origins.has(s) && !dim && (
+            {origins.has(s) && !dim && !still && (
               <circle cx={x} cy={y} r={rad[s]} fill="none" stroke={SC[s]} strokeWidth={1.5} vectorEffect="non-scaling-stroke" pointerEvents="none">
                 <animate attributeName="r" values={`${rad[s]};${rad[s] + u * 1.6}`} dur="1.6s" repeatCount="indefinite" />
                 <animate attributeName="opacity" values="0.7;0" dur="1.6s" repeatCount="indefinite" />

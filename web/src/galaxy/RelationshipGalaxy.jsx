@@ -10,7 +10,8 @@ import {
 import { SENSES } from "../lib/constants.js";
 import { buildRelationshipGraph, buildContext, GALAXY_LEGEND, GALAXY_GUIDE, LENSES, DEFAULT_LENSES } from "../lib/relationshipGraph.js";
 import { childrenOf } from "../lib/galaxyChildren.js";
-import { rippleSequence, worstSense } from "../lib/rippleSim.js";
+import { rippleSteps } from "../lib/rippleSim.js";
+import { reducedMotion } from "../lib/rippleEvents.js";
 import { clusterForce, SENSE_ANCHORS, recomputeCentroids, bundleControlPoints } from "./galaxyForces.js";
 import GalaxyNarrator from "./GalaxyNarrator.jsx";
 import { nodeLabelHtml } from "./tooltip.js";
@@ -142,13 +143,14 @@ export default function RelationshipGalaxy({ turn, persona, onClose }) {
     if (!G || !ctx) return;
     const sense = idOf(sourceSenseId).replace("sense:", "");
     const couplings = G.graphData().links.filter((l) => l.kind === "coupling" && idOf(l.source).startsWith("sense:"));
-    const findLink = (a, b) => couplings.find((l) => { const s = idOf(l.source).replace("sense:", ""), t = idOf(l.target).replace("sense:", ""); return (s === a && t === b) || (s === b && t === a); });
-    const room = ctx.rooms.reduce((w, r) => ((r.comfortScores?.[sense] ?? 1) < (w?.comfortScores?.[sense] ?? 2) ? r : w), null);
-    const seq = rippleSequence(sense, { room });
+    const findLink = (a, b) => couplings.find((l) => idOf(l.source) === `sense:${a}` && idOf(l.target) === `sense:${b}`);
+    const seq = rippleSteps(sense, ctx.events);          // only what the model computed
+    const still = reducedMotion();
     const senses = new Set([sense]); const inLinks = new Set(); let maxDelay = 0;
     seq.forEach((step) => {
       senses.add(step.from); senses.add(step.to); maxDelay = Math.max(maxDelay, step.delay);
       const link = findLink(step.from, step.to); if (!link) return; inLinks.add(link);
+      if (still) return;
       for (let i = 0; i < step.count; i++) { const t = setTimeout(() => spawnPulse(link.__curve, step.color, step.speed), step.delay + i * 130); rippleTimersRef.current.push(t); }
     });
     if (focus) {                                  // fade everything not in the ripple path
@@ -269,8 +271,9 @@ export default function RelationshipGalaxy({ turn, persona, onClose }) {
         setReadout(node ? GALAXY_GUIDE.readNode(node) : null);   // narrator: plain-language readout
         refreshHighlight();
         if (hoverIvRef.current) { clearInterval(hoverIvRef.current); hoverIvRef.current = 0; }
-        if (node && hl.links.size) {
-          const flow = () => hlRef.current.links.forEach((l) => { if (l.__curve) spawnPulse(l.__curve, l.color, 0.02); });
+        if (node && hl.links.size && !reducedMotion()) {
+          // dots travel = direction, so undirected door links stay still
+          const flow = () => hlRef.current.links.forEach((l) => { if (l.__curve && !["transmission", "adjacency", "structure"].includes(l.kind)) spawnPulse(l.__curve, l.color, 0.02); });
           flow(); hoverIvRef.current = setInterval(flow, 650);
         }
       })
@@ -357,7 +360,9 @@ export default function RelationshipGalaxy({ turn, persona, onClose }) {
     const G = graphRef.current, ctx = ctxRef.current;
     if (!G || !ctx) return;
     if (G.zoomToFit) G.zoomToFit(1000, 70);
-    const order = [...SENSES].sort((a, b) => (ctx.fail?.[b] || 0) - (ctx.fail?.[a] || 0));
+    const sources = new Set((ctx.events || []).map((e) => e.from));
+    const order = SENSES.filter((s) => sources.has(s)).sort((a, b) => (ctx.fail?.[b] || 0) - (ctx.fail?.[a] || 0));
+    if (!order.length) return;
     let i = 0;
     const fireNext = () => { fireRipple(`sense:${order[i % order.length]}`); i += 1; };
     const start = setTimeout(fireNext, 600);

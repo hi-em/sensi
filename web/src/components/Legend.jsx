@@ -37,10 +37,9 @@ export default function Legend({ layers = {} }) {
           </span>
           <span className="legend-seg">
             <svg className="legend-arrow" width="24" height="9" viewBox="0 0 26 10" aria-hidden="true">
-              <line x1="1" y1="5" x2="19" y2="5" stroke={SC.acoustic} strokeWidth="2.5" strokeDasharray="4 3" strokeLinecap="round" />
-              <polygon points="25,5 18,2 18,8" fill={SC.acoustic} />
+              <line x1="1" y1="5" x2="25" y2="5" stroke={SC.acoustic} strokeWidth="2.5" strokeLinecap="round" />
             </svg>
-            <span className="legend-val">sense bleed</span>
+            <span className="legend-val">fails across door</span>
           </span>
           <span className="legend-seg legend-faint">hover a node → hub · bridge</span>
         </>

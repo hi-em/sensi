@@ -1,9 +1,22 @@
 import * as api from "../api/client.js";
+import { buildRelationshipGraph, LENSES } from "../lib/relationshipGraph.js";
 
-// JSON bundle export — the "real tool" artifact: the layout, its comfort scores,
+// JSON bundle export — the "real tool" artifact: the layout, its comfort scores, topology graph, galaxy graph,
 // conflicts, suggestions, and the per-room render prompts, in one downloadable file.
 // Pure client; layout comes from /api/layout, the analysis comes off the turn.
 function parse(s) { try { return s ? JSON.parse(s) : null; } catch { return null; } }
+
+// The galaxy's nodes/links with every lens on, data fields only (no draw styling).
+const idOf = (x) => (x && typeof x === "object" ? x.id : x);
+function galaxyGraph(turn, persona) {
+  const { nodes, links } = buildRelationshipGraph(turn, persona, LENSES.map((l) => l.key));
+  return {
+    nodes: nodes.map(({ id, kind, label, sense, group, fail, overall, roomId, degree, betweenness, bridge, isolated, rtype }) =>
+      ({ id, kind, label, sense, group, fail, overall, roomId, degree, betweenness, bridge, isolated, rtype })),
+    links: links.map(({ source, target, kind, sense, sign, mech, basis, door }) =>
+      ({ source: idOf(source), target: idOf(target), kind, sense, sign, mech, basis, door })),
+  };
+}
 
 export async function exportBundle({ turn, rooms = [], layoutId, persona = null, moodboardUrls = [] }) {
   let layout = null;
@@ -28,6 +41,8 @@ export async function exportBundle({ turn, rooms = [], layoutId, persona = null,
     scores: parse(turn?.scores_json),
     conflicts: parse(turn?.conflicts_json),
     suggestions: parse(turn?.suggestions_json),
+    graph_data: turn?.graph_data || null,
+    galaxy: galaxyGraph(turn, persona),
     prompts: rooms.map((r) => ({
       room: r.room_name,
       room_type: r.room_type,

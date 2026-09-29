@@ -4,14 +4,16 @@
 //
 // COMPLEXITY is now expressed as MEANING LENSES, not arbitrary L1/L2/L3 tiers:
 //   base     — senses + rooms (always shown; never empty)
-//   problems — rooms driving sense issues (exhibits) + room→room bleed (transmission)
+//   problems — rooms driving sense issues (exhibits) + senses failing across a door (transmission)
 //   levers   — design levers + lever→sense fixes
 //   healthy  — conflict-free structural adjacency
-//   ripple   — sense↔sense couplings (also arms the ripple simulation)
+//   ripple   — the sense→sense adjustments the model computed (also arms the ripple play)
 // Lenses compose (multi-toggle). Each node carries `group` (its community anchor)
 // and each link carries `curvature`/`curveRot` for the bundled-fiber look.
 import { SENSES, SC, SI } from "./constants.js";
-import { SENSE_SENSE, LEVER_SENSE, thresholdFromWeight } from "./senseModel.js";
+import { LEVER_SENSE, thresholdFromWeight } from "./senseModel.js";
+import { homeEvents, valenceColor } from "./rippleEvents.js";
+import { VALENCE } from "./relationships.js";
 
 const FG = "rgba(240,237,232,";                 // foreground, append "<alpha>)"
 const PROV = { verified: { basis: "research" }, inferred: { basis: "physics" } };
@@ -41,7 +43,7 @@ export function buildContext(turn, persona) {
   const maxDeg = Math.max(1, ...(gd.nodes || []).map((n) => n.degree || 0));
   const fail = {}; SENSES.forEach((s) => { fail[s] = 0; });
   rooms.forEach((r) => SENSES.forEach((s) => { if ((r.comfortScores?.[s] ?? 1) < thr(s)) fail[s]++; }));
-  return { rooms, gd, weights, thr, byName, idToName, meta, maxDeg, fail };
+  return { rooms, gd, weights, thr, byName, idToName, meta, maxDeg, fail, events: homeEvents(rooms) };
 }
 
 // ── Base node emitters (always present) ──
@@ -72,12 +74,13 @@ function emitLeverNodes(ctx, nodes) {
   });
 }
 function emitCoupling(ctx, links) {
-  SENSE_SENSE.forEach(([a, b, dir, sign, tier, mech], i) => {
-    const p = PROV[tier] || PROV.inferred;
+  ctx.events.forEach((e, i) => {
+    const p = PROV[e.tier] || PROV.inferred;
     links.push({
-      source: `sense:${a}`, target: `sense:${b}`, kind: "coupling", sign, mech, basis: p.basis,
-      color: SC[a], width: 1.4, opacity: tier === "verified" ? 0.65 : 0.34,
-      arrow: dir !== "both", curvature: 0.3, curveRot: rot(`c${i}`),
+      source: `sense:${e.from}`, target: `sense:${e.to}`, kind: "coupling", sign: e.meanDelta < 0 ? "-" : "+",
+      mech: e.mechanism, basis: p.basis, count: e.count, delta: e.meanDelta,
+      color: valenceColor(e.meanDelta), width: 1 + Math.min(e.count, 6) * 0.3, opacity: e.tier === "verified" ? 0.65 : 0.34,
+      curvature: 0.3, curveRot: rot(`c${i}`),
     });
   });
 }
@@ -91,10 +94,11 @@ function emitTransmission(ctx, links) {
     const sev = conflicts.map((s) => ({ s, worse: Math.min(a.comfortScores?.[s] ?? 1, b.comfortScores?.[s] ?? 1),
       sa: a.comfortScores?.[s] ?? 1, sb: b.comfortScores?.[s] ?? 1 })).sort((x, y) => x.worse - y.worse);
     const w = sev[0];
-    const src = w.sa <= w.sb ? an : bn, tgt = w.sa <= w.sb ? bn : an;
-    links.push({ source: `room:${src}`, target: `room:${tgt}`, kind: "transmission", sense: w.s, sign: "-",
-      mech: `${w.s} bleeds across the door`, door: e.door_name, color: SC[w.s],
-      width: 1.5 + (1 - w.worse) * 3, opacity: 0.42 + (1 - w.worse) * 0.45, arrow: true, curvature: 0.2, curveRot: rot(src + tgt) });
+    // topology flags a sense failing on the door, not a direction: endpoints in name order
+    const [p, q] = [an, bn].sort();
+    links.push({ source: `room:${p}`, target: `room:${q}`, kind: "transmission", sense: w.s, sign: "-",
+      mech: `${w.s} fails across the door`, door: e.door_name, color: SC[w.s],
+      width: 1.5 + (1 - w.worse) * 3, opacity: 0.42 + (1 - w.worse) * 0.45, curvature: 0.2, curveRot: rot(p + q) });
   });
 }
 function emitStructure(ctx, links) {
@@ -118,16 +122,16 @@ function emitLeverLinks(ctx, links) {
   LEVER_SENSE.forEach(([lv, s, sign, tier, mech], i) => {
     const p = PROV[tier] || PROV.inferred;
     links.push({ source: `lever:${lv}`, target: `sense:${s}`, kind: "lever", sign, mech, basis: p.basis,
-      color: `${FG}0.35)`, width: 0.8, opacity: 0.22, arrow: true, curvature: 0.15, curveRot: rot("l" + i) });
+      color: VALENCE[sign]?.tint || `${FG}0.35)`, width: 0.8, opacity: 0.3, curvature: 0.15, curveRot: rot("l" + i) });
   });
 }
 
 // ── The lenses (multi-toggle; compose over the always-on base) ──
 export const LENSES = [
-  { key: "problems", label: "problems", desc: "where comfort fails — rooms driving sense issues + bleed between rooms", emitLinks: [emitExhibits, emitTransmission] },
-  { key: "levers",   label: "levers",   desc: "design moves you can pull — what each lever improves", emitNodes: [emitLeverNodes], emitLinks: [emitLeverLinks] },
+  { key: "problems", label: "problems", desc: "where comfort fails — rooms driving sense issues + senses failing across doors", emitLinks: [emitExhibits, emitTransmission] },
+  { key: "levers",   label: "levers",   desc: "design moves you can pull — what each lever moves (+ raises · − lowers · ± trades off)", emitNodes: [emitLeverNodes], emitLinks: [emitLeverLinks] },
   { key: "healthy",  label: "healthy",  desc: "the calm structure — conflict-free room adjacencies", emitLinks: [emitStructure] },
-  { key: "ripple",   label: "ripple",   desc: "how the senses talk — the couplings (click a sense / ▶ to animate)", emitLinks: [emitCoupling] },
+  { key: "ripple",   label: "ripple",   desc: "the sense→sense nudges the model computed (click a sense / ▶ to play)", emitLinks: [emitCoupling] },
 ];
 
 export const DEFAULT_LENSES = ["problems"];
@@ -163,10 +167,10 @@ export const GALAXY_LEGEND = [
   ["sense", "the 6 senses — hue = identity, size = rooms failing it"],
   ["room", "a room — size = how connected (doors), grouped near its weakest sense"],
   ["lever", "a design lever — what an edit moves"],
-  ["coupling", "sense ↔ sense (research bright · physics faint) — the ripple"],
-  ["transmission", "a sense bleeding room → room"],
+  ["coupling", "a computed sense → sense nudge · red lowers, green raises"],
+  ["transmission", "a sense failing across a shared door"],
   ["exhibits", "a room driving a sense problem"],
-  ["fix", "a lever that improves a sense"],
+  ["fix", "what a lever moves: + raises · − lowers · ± trades off"],
 ];
 
 // ── Educational layer ("The Narrator") ──────────────────────────────────────
@@ -183,11 +187,11 @@ const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 // what each control teaches (lens pills + fiber / ▶ buttons)
 const CONTROL_COPY = {
   problems: { tag: "lens · problems", title: "Problems lens", body: "Where comfort fails — the rooms driving sense issues, and where a sense leaks from one room into the next." },
-  levers:   { tag: "lens · levers",   title: "Levers lens",   body: "Design moves you can pull, and which sense each one improves." },
+  levers:   { tag: "lens · levers",   title: "Levers lens",   body: "Design moves you can pull, and which senses each one raises, lowers or trades off." },
   healthy:  { tag: "lens · healthy",  title: "Healthy lens",  body: "The calm structure — rooms that sit comfortably together, with no sense conflict between them." },
-  ripple:   { tag: "lens · ripple",   title: "Ripple lens",   body: "How the senses talk to each other. Turn it on, then click a sense (or press ▶) to watch the effect travel." },
+  ripple:   { tag: "lens · ripple",   title: "Ripple lens",   body: "The sense-to-sense nudges the model computed for this home. Turn it on, then click a sense (or press ▶) to play them." },
   fiber:    { tag: "view · fiber",    title: "Fiber view",    body: "Dissolves the spheres and leaves only the threads — the bare shape of how everything connects." },
-  play:     { tag: "ripple",          title: "Play the ripple", body: "Sends a ripple through the senses, worst-scoring first. Needs the ripple lens turned on." },
+  play:     { tag: "ripple",          title: "Play the ripple", body: "Plays the computed nudges, sense by sense. Needs the ripple lens turned on." },
 };
 
 export const GALAXY_GUIDE = {
@@ -197,7 +201,7 @@ export const GALAXY_GUIDE = {
     { focus: "all",   title: "Your home, read as comfort", body: "Six senses, your rooms, and the threads of how they pull on each other — the whole picture in one view." },
     { focus: "sense", title: "The six senses",  body: "These glowing labels are what Sensi scores: warmth, light, sound, space, smell and touch. The colour names the sense; a bigger label means more rooms struggle with it." },
     { focus: "room",  title: "Your rooms",      body: "Each grey sphere is a room. It drifts toward the sense it struggles with most — so where it floats is already a clue." },
-    { focus: "fiber", title: "The threads between them", body: "Threads are how comfort travels — one sense tugging another, or a problem leaking between rooms. Brighter threads are research-backed; faint, dashed ones are physics-based." },
+    { focus: "fiber", title: "The threads between them", body: "Threads are what the model found — one sense nudging another, or a sense failing across a shared door. Brighter threads are research-backed; faint, dashed ones are physics-based." },
     { focus: "all",   title: "Now it's yours",  body: "Hover anything to read it in plain words. Toggle a lens up top to change what the threads show. You can dismiss this guide whenever you like." },
   ],
   idle: "Hover any sphere or thread to read it in plain words · toggle a lens to change what's shown",
@@ -208,8 +212,8 @@ export const GALAXY_GUIDE = {
     if (n.kind === "sense") {
       const w = senseWord(n.sense);
       const body = n.fail > 0
-        ? `Struggling in ${plural(n.fail, "room")} right now. Click to ripple how ${w} pulls on the other senses.`
-        : `No rooms are struggling with ${w} right now. Click to ripple how ${w} touches the other senses.`;
+        ? `Struggling in ${plural(n.fail, "room")} right now. Click to play what ${w} nudged.`
+        : `No rooms are struggling with ${w} right now. Click to play what ${w} nudged.`;
       return { tag: `sense · ${n.sense}`, title: `${SI[n.sense] || ""} ${cap(w)}`.trim(), body };
     }
     if (n.kind === "room") {
@@ -220,7 +224,7 @@ export const GALAXY_GUIDE = {
       bits.push("Click to open its senses and neighbours.");
       return { tag: "room", title: n.label, body: bits.join(" ") };
     }
-    if (n.kind === "lever") return { tag: "lever", title: n.label, body: "A design move you can pull — click to see which sense it improves." };
+    if (n.kind === "lever") return { tag: "lever", title: n.label, body: "A design move you can pull — click to see which senses it moves." };
     if (n.kind === "score") return { tag: "score", title: n.label, body: "One room's score for a single sense." };
     return null;
   },
@@ -228,17 +232,21 @@ export const GALAXY_GUIDE = {
     if (!l) return null;
     const a = nameOf(l.source), b = nameOf(l.target);
     if (l.kind === "coupling") {
-      const verb = l.sign === "+" ? "lift each other" : l.sign === "-" ? "pull against each other" : "shape each other";
-      return { tag: "coupling", title: `${cap(senseWord(a))} ↔ ${cap(senseWord(b))}`,
-        body: `${cap(senseWord(a))} and ${senseWord(b)} ${verb} — ${l.mech}. ${l.basis === "research" ? "Research-backed." : "Physics-inferred."}` };
+      const verb = l.delta < 0 ? "drags" : "lifts";
+      const sa = a.split(":").pop(), sb = b.split(":").pop();     // score ids carry "room:sense"
+      return { tag: "coupling", title: `${cap(senseWord(sa))} ${verb} ${senseWord(sb)}`,
+        body: `${plural(l.count, "room")} — ${l.mech}. ${l.basis === "research" ? "Research-backed." : "Physics-inferred."}` };
     }
-    if (l.kind === "transmission") return { tag: "transmission", title: "Leaking room to room",
-      body: `${a}'s ${senseWord(l.sense)} drifts into ${b}${l.door ? " — they share a door" : ""}.` };
+    if (l.kind === "transmission") return { tag: "transmission", title: "A shared door",
+      body: `${a} and ${b} share a door; ${senseWord(l.sense)} fails on it.` };
     if (l.kind === "exhibits") return { tag: "exhibits", title: "A room driving a problem",
       body: `${a}'s ${senseWord(l.sense)} falls below comfort.` };
     if (l.kind === "structure") return { tag: "structure", title: "A calm connection",
       body: `${a} and ${b} share a door with no sense conflict.` };
-    if (l.kind === "lever") return { tag: "fix", title: "A design fix", body: `${a} improves ${senseWord(b)}.` };
+    if (l.kind === "lever") {
+      const verb = l.sign === "+" ? "raises" : l.sign === "-" ? "lowers" : "trades off";
+      return { tag: "lever", title: "A design lever", body: `${cap(a)} ${verb} ${senseWord(b)} — ${l.mech}.` };
+    }
     return null;
   },
   control: (k) => CONTROL_COPY[k] || null,
