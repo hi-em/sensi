@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import SensiAvatar from "../components/SensiAvatar.jsx";
+import Chord from "../marks/Chord.jsx";
+import { useDemoHome } from "../marks/useDemoHome.js";
 import { SC } from "../lib/constants.js";
 import { EASE } from "../lib/motion.js";
 
@@ -79,7 +80,7 @@ export default function EntryScreen({ persona, clientId, user = null,
       animate={leaving ? { opacity: 0, y: -8, scale: 0.985 } : { opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.32, ease: EASE.out }}>
       <div className="entry-hero">
-        <SensiAvatar size={44} className="" strokeWidth={0.9} centerR={1.4} centerOpacity={0.85} />
+        <HeroChord />
         <p className="entry-wordmark">sensi</p>
         <p className="entry-tag">every floor plan feels different to every body.</p>
         <p className="entry-sub">
@@ -180,5 +181,17 @@ export default function EntryScreen({ persona, clientId, user = null,
         <span className="entry-credit-stack">langgraph · fastapi · react</span>
       </footer>
     </motion.div>
+  );
+}
+
+// The demo persona's whole-home ripple chord (model output computed at build time),
+// glyph ends only, no caption. SVG + 2D canvas; a still frame under reduced motion.
+function HeroChord() {
+  const home = useDemoHome();
+  const size = Math.min(260, window.innerWidth - 80);
+  return (
+    <div className="entry-hero-chord" style={{ width: size, height: size }}>
+      {home && <Chord rooms={home.rooms} size={size} minimal thr={home.thr} />}
+    </div>
   );
 }

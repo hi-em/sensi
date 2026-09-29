@@ -1,0 +1,941 @@
+{
+ "layoutId": "204",
+ "comfort_weights": {
+  "thermal": 0.95,
+  "visual": 0.9,
+  "acoustic": 0.7,
+  "spatial": 0.45,
+  "olfactory": 0.9,
+  "tactile": 0.85
+ },
+ "rooms": [
+  {
+   "roomId": "room-1",
+   "roomName": "Living Room",
+   "comfortScores": {
+    "thermal": 0.76,
+    "visual": 0.87,
+    "acoustic": 0.6,
+    "spatial": 0.93,
+    "olfactory": 0.87,
+    "tactile": 0.68
+   },
+   "baseScores": {
+    "thermal": 0.72,
+    "visual": 0.93,
+    "acoustic": 0.59,
+    "spatial": 1.0,
+    "olfactory": 0.83,
+    "tactile": 0.68
+   },
+   "adjustments": [
+    {
+     "sense": "olfactory",
+     "delta": 0.04,
+     "from": "thermal",
+     "mechanism": "TSV \u2194 ASV association (encode conservatively)",
+     "tier": "verified",
+     "basis": "research"
+    },
+    {
+     "sense": "thermal",
+     "delta": 0.04,
+     "from": "olfactory",
+     "mechanism": "TSV \u2194 ASV association (encode conservatively)",
+     "tier": "verified",
+     "basis": "research"
+    },
+    {
+     "sense": "acoustic",
+     "delta": 0.01,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "visual",
+     "delta": -0.06,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "spatial",
+     "delta": -0.07,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    }
+   ],
+   "overallScore": 0.69,
+   "roomType": "living"
+  },
+  {
+   "roomId": "room-2",
+   "roomName": "Dining Room",
+   "comfortScores": {
+    "thermal": 0.65,
+    "visual": 0.73,
+    "acoustic": 0.2,
+    "spatial": 0.87,
+    "olfactory": 0.59,
+    "tactile": 0.66
+   },
+   "baseScores": {
+    "thermal": 0.7,
+    "visual": 0.83,
+    "acoustic": 0.24,
+    "spatial": 1.0,
+    "olfactory": 0.55,
+    "tactile": 0.66
+   },
+   "adjustments": [
+    {
+     "sense": "thermal",
+     "delta": -0.05,
+     "from": "acoustic",
+     "mechanism": "strongest evidenced cross-modal coupling (bidirectional, context-dependent)",
+     "tier": "verified",
+     "basis": "research"
+    },
+    {
+     "sense": "visual",
+     "delta": -0.06,
+     "from": "acoustic",
+     "mechanism": "noise significantly degrades visual comfort",
+     "tier": "verified",
+     "basis": "research"
+    },
+    {
+     "sense": "olfactory",
+     "delta": 0.04,
+     "from": "thermal",
+     "mechanism": "TSV \u2194 ASV association (encode conservatively)",
+     "tier": "verified",
+     "basis": "research"
+    },
+    {
+     "sense": "spatial",
+     "delta": -0.06,
+     "from": "acoustic",
+     "mechanism": "room volume drives reverberation (Sabine)",
+     "tier": "inferred",
+     "basis": "physics"
+    },
+    {
+     "sense": "acoustic",
+     "delta": -0.04,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "visual",
+     "delta": -0.04,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "spatial",
+     "delta": -0.07,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    }
+   ],
+   "overallScore": 0.41,
+   "roomType": "dining"
+  },
+  {
+   "roomId": "room-3",
+   "roomName": "Kitchen",
+   "comfortScores": {
+    "thermal": 0.39,
+    "visual": 0.62,
+    "acoustic": 0.34,
+    "spatial": 0.87,
+    "olfactory": 0.23,
+    "tactile": 0.36
+   },
+   "baseScores": {
+    "thermal": 0.49,
+    "visual": 0.7,
+    "acoustic": 0.41,
+    "spatial": 1.0,
+    "olfactory": 0.3,
+    "tactile": 0.45
+   },
+   "adjustments": [
+    {
+     "sense": "thermal",
+     "delta": -0.05,
+     "from": "acoustic",
+     "mechanism": "strongest evidenced cross-modal coupling (bidirectional, context-dependent)",
+     "tier": "verified",
+     "basis": "research"
+    },
+    {
+     "sense": "acoustic",
+     "delta": -0.05,
+     "from": "thermal",
+     "mechanism": "strongest evidenced cross-modal coupling (bidirectional, context-dependent)",
+     "tier": "verified",
+     "basis": "research"
+    },
+    {
+     "sense": "visual",
+     "delta": -0.06,
+     "from": "acoustic",
+     "mechanism": "noise significantly degrades visual comfort",
+     "tier": "verified",
+     "basis": "research"
+    },
+    {
+     "sense": "spatial",
+     "delta": -0.06,
+     "from": "acoustic",
+     "mechanism": "room volume drives reverberation (Sabine)",
+     "tier": "inferred",
+     "basis": "physics"
+    },
+    {
+     "sense": "thermal",
+     "delta": -0.05,
+     "from": "tactile",
+     "mechanism": "material effusivity \u2192 contact thermal sensation",
+     "tier": "inferred",
+     "basis": "physics"
+    },
+    {
+     "sense": "tactile",
+     "delta": -0.05,
+     "from": "thermal",
+     "mechanism": "material effusivity \u2192 contact thermal sensation",
+     "tier": "inferred",
+     "basis": "physics"
+    },
+    {
+     "sense": "acoustic",
+     "delta": -0.02,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "visual",
+     "delta": -0.02,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "spatial",
+     "delta": -0.07,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "olfactory",
+     "delta": -0.07,
+     "from": "pets",
+     "mechanism": "pets add odour load \u2014 ventilation matters more",
+     "tier": "inferred",
+     "basis": "context"
+    },
+    {
+     "sense": "tactile",
+     "delta": -0.04,
+     "from": "pets",
+     "mechanism": "pet homes need durable, cleanable surfaces",
+     "tier": "inferred",
+     "basis": "context"
+    }
+   ],
+   "overallScore": 0.33,
+   "roomType": "kitchen"
+  },
+  {
+   "roomId": "room-4",
+   "roomName": "Pantry",
+   "comfortScores": {
+    "thermal": 0.62,
+    "visual": 0.36,
+    "acoustic": 0.48,
+    "spatial": 0.87,
+    "olfactory": 0.54,
+    "tactile": 0.55
+   },
+   "baseScores": {
+    "thermal": 0.67,
+    "visual": 0.4,
+    "acoustic": 0.48,
+    "spatial": 1.0,
+    "olfactory": 0.55,
+    "tactile": 0.56
+   },
+   "adjustments": [
+    {
+     "sense": "thermal",
+     "delta": -0.05,
+     "from": "acoustic",
+     "mechanism": "strongest evidenced cross-modal coupling (bidirectional, context-dependent)",
+     "tier": "verified",
+     "basis": "research"
+    },
+    {
+     "sense": "visual",
+     "delta": -0.06,
+     "from": "acoustic",
+     "mechanism": "noise significantly degrades visual comfort",
+     "tier": "verified",
+     "basis": "research"
+    },
+    {
+     "sense": "spatial",
+     "delta": -0.06,
+     "from": "acoustic",
+     "mechanism": "room volume drives reverberation (Sabine)",
+     "tier": "inferred",
+     "basis": "physics"
+    },
+    {
+     "sense": "visual",
+     "delta": 0.02,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "spatial",
+     "delta": -0.07,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "olfactory",
+     "delta": -0.01,
+     "from": "pets",
+     "mechanism": "pets add odour load \u2014 ventilation matters more",
+     "tier": "inferred",
+     "basis": "context"
+    },
+    {
+     "sense": "tactile",
+     "delta": -0.01,
+     "from": "pets",
+     "mechanism": "pet homes need durable, cleanable surfaces",
+     "tier": "inferred",
+     "basis": "context"
+    }
+   ],
+   "overallScore": 0.45,
+   "roomType": "circulation"
+  },
+  {
+   "roomId": "room-5",
+   "roomName": "Powder Room",
+   "comfortScores": {
+    "thermal": 0.55,
+    "visual": 0.41,
+    "acoustic": 0.68,
+    "spatial": 0.93,
+    "olfactory": 0.35,
+    "tactile": 0.54
+   },
+   "baseScores": {
+    "thermal": 0.55,
+    "visual": 0.4,
+    "acoustic": 0.66,
+    "spatial": 1.0,
+    "olfactory": 0.4,
+    "tactile": 0.55
+   },
+   "adjustments": [
+    {
+     "sense": "acoustic",
+     "delta": 0.02,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "visual",
+     "delta": 0.01,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "spatial",
+     "delta": -0.07,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "olfactory",
+     "delta": -0.05,
+     "from": "pets",
+     "mechanism": "pets add odour load \u2014 ventilation matters more",
+     "tier": "inferred",
+     "basis": "context"
+    },
+    {
+     "sense": "tactile",
+     "delta": -0.01,
+     "from": "pets",
+     "mechanism": "pet homes need durable, cleanable surfaces",
+     "tier": "inferred",
+     "basis": "context"
+    }
+   ],
+   "overallScore": 0.44,
+   "roomType": "bathroom"
+  },
+  {
+   "roomId": "room-6",
+   "roomName": "Hallway",
+   "comfortScores": {
+    "thermal": 0.57,
+    "visual": 0.36,
+    "acoustic": 0.27,
+    "spatial": 0.87,
+    "olfactory": 0.29,
+    "tactile": 0.6
+   },
+   "baseScores": {
+    "thermal": 0.62,
+    "visual": 0.4,
+    "acoustic": 0.3,
+    "spatial": 1.0,
+    "olfactory": 0.35,
+    "tactile": 0.6
+   },
+   "adjustments": [
+    {
+     "sense": "thermal",
+     "delta": -0.05,
+     "from": "acoustic",
+     "mechanism": "strongest evidenced cross-modal coupling (bidirectional, context-dependent)",
+     "tier": "verified",
+     "basis": "research"
+    },
+    {
+     "sense": "visual",
+     "delta": -0.06,
+     "from": "acoustic",
+     "mechanism": "noise significantly degrades visual comfort",
+     "tier": "verified",
+     "basis": "research"
+    },
+    {
+     "sense": "spatial",
+     "delta": -0.06,
+     "from": "acoustic",
+     "mechanism": "room volume drives reverberation (Sabine)",
+     "tier": "inferred",
+     "basis": "physics"
+    },
+    {
+     "sense": "acoustic",
+     "delta": -0.03,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "visual",
+     "delta": 0.02,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "spatial",
+     "delta": -0.07,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "olfactory",
+     "delta": -0.06,
+     "from": "pets",
+     "mechanism": "pets add odour load \u2014 ventilation matters more",
+     "tier": "inferred",
+     "basis": "context"
+    }
+   ],
+   "overallScore": 0.37,
+   "roomType": "circulation"
+  },
+  {
+   "roomId": "room-7",
+   "roomName": "Master Bedroom",
+   "comfortScores": {
+    "thermal": 0.72,
+    "visual": 0.63,
+    "acoustic": 0.76,
+    "spatial": 0.93,
+    "olfactory": 0.75,
+    "tactile": 0.72
+   },
+   "baseScores": {
+    "thermal": 0.68,
+    "visual": 0.65,
+    "acoustic": 0.69,
+    "spatial": 1.0,
+    "olfactory": 0.75,
+    "tactile": 0.72
+   },
+   "adjustments": [
+    {
+     "sense": "thermal",
+     "delta": 0.04,
+     "from": "olfactory",
+     "mechanism": "TSV \u2194 ASV association (encode conservatively)",
+     "tier": "verified",
+     "basis": "research"
+    },
+    {
+     "sense": "acoustic",
+     "delta": 0.04,
+     "from": "tactile",
+     "mechanism": "surface absorption controls reverberation",
+     "tier": "inferred",
+     "basis": "physics"
+    },
+    {
+     "sense": "acoustic",
+     "delta": 0.03,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "visual",
+     "delta": -0.02,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "spatial",
+     "delta": -0.07,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    }
+   ],
+   "overallScore": 0.68,
+   "roomType": "bedroom"
+  },
+  {
+   "roomId": "room-8",
+   "roomName": "Master Ensuite",
+   "comfortScores": {
+    "thermal": 0.57,
+    "visual": 0.41,
+    "acoustic": 0.71,
+    "spatial": 0.93,
+    "olfactory": 0.35,
+    "tactile": 0.52
+   },
+   "baseScores": {
+    "thermal": 0.57,
+    "visual": 0.4,
+    "acoustic": 0.68,
+    "spatial": 1.0,
+    "olfactory": 0.4,
+    "tactile": 0.53
+   },
+   "adjustments": [
+    {
+     "sense": "acoustic",
+     "delta": 0.03,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "visual",
+     "delta": 0.01,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "spatial",
+     "delta": -0.07,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "olfactory",
+     "delta": -0.05,
+     "from": "pets",
+     "mechanism": "pets add odour load \u2014 ventilation matters more",
+     "tier": "inferred",
+     "basis": "context"
+    },
+    {
+     "sense": "tactile",
+     "delta": -0.01,
+     "from": "pets",
+     "mechanism": "pet homes need durable, cleanable surfaces",
+     "tier": "inferred",
+     "basis": "context"
+    }
+   ],
+   "overallScore": 0.45,
+   "roomType": "bathroom"
+  },
+  {
+   "roomId": "room-9",
+   "roomName": "Study",
+   "comfortScores": {
+    "thermal": 0.67,
+    "visual": 0.5,
+    "acoustic": 0.6,
+    "spatial": 0.31,
+    "olfactory": 0.65,
+    "tactile": 0.66
+   },
+   "baseScores": {
+    "thermal": 0.67,
+    "visual": 0.5,
+    "acoustic": 0.65,
+    "spatial": 0.28,
+    "olfactory": 0.65,
+    "tactile": 0.66
+   },
+   "adjustments": [
+    {
+     "sense": "acoustic",
+     "delta": -0.06,
+     "from": "spatial",
+     "mechanism": "room volume drives reverberation (Sabine)",
+     "tier": "inferred",
+     "basis": "physics"
+    },
+    {
+     "sense": "acoustic",
+     "delta": 0.01,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "spatial",
+     "delta": 0.03,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    }
+   ],
+   "overallScore": 0.45,
+   "roomType": "office"
+  },
+  {
+   "roomId": "room-10",
+   "roomName": "Bedroom 2",
+   "comfortScores": {
+    "thermal": 0.71,
+    "visual": 0.7,
+    "acoustic": 0.78,
+    "spatial": 0.93,
+    "olfactory": 0.85,
+    "tactile": 0.74
+   },
+   "baseScores": {
+    "thermal": 0.67,
+    "visual": 0.73,
+    "acoustic": 0.7,
+    "spatial": 1.0,
+    "olfactory": 0.85,
+    "tactile": 0.7
+   },
+   "adjustments": [
+    {
+     "sense": "thermal",
+     "delta": 0.04,
+     "from": "olfactory",
+     "mechanism": "TSV \u2194 ASV association (encode conservatively)",
+     "tier": "verified",
+     "basis": "research"
+    },
+    {
+     "sense": "acoustic",
+     "delta": 0.04,
+     "from": "tactile",
+     "mechanism": "surface absorption controls reverberation",
+     "tier": "inferred",
+     "basis": "physics"
+    },
+    {
+     "sense": "tactile",
+     "delta": 0.04,
+     "from": "acoustic",
+     "mechanism": "surface absorption controls reverberation",
+     "tier": "inferred",
+     "basis": "physics"
+    },
+    {
+     "sense": "acoustic",
+     "delta": 0.04,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "visual",
+     "delta": -0.03,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "spatial",
+     "delta": -0.07,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    }
+   ],
+   "overallScore": 0.74,
+   "roomType": "bedroom"
+  },
+  {
+   "roomId": "room-11",
+   "roomName": "Family Bathroom",
+   "comfortScores": {
+    "thermal": 0.57,
+    "visual": 0.41,
+    "acoustic": 0.73,
+    "spatial": 0.93,
+    "olfactory": 0.35,
+    "tactile": 0.56
+   },
+   "baseScores": {
+    "thermal": 0.57,
+    "visual": 0.4,
+    "acoustic": 0.7,
+    "spatial": 1.0,
+    "olfactory": 0.4,
+    "tactile": 0.53
+   },
+   "adjustments": [
+    {
+     "sense": "tactile",
+     "delta": 0.04,
+     "from": "acoustic",
+     "mechanism": "surface absorption controls reverberation",
+     "tier": "inferred",
+     "basis": "physics"
+    },
+    {
+     "sense": "acoustic",
+     "delta": 0.03,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "visual",
+     "delta": 0.01,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "spatial",
+     "delta": -0.07,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "olfactory",
+     "delta": -0.05,
+     "from": "pets",
+     "mechanism": "pets add odour load \u2014 ventilation matters more",
+     "tier": "inferred",
+     "basis": "context"
+    },
+    {
+     "sense": "tactile",
+     "delta": -0.01,
+     "from": "pets",
+     "mechanism": "pet homes need durable, cleanable surfaces",
+     "tier": "inferred",
+     "basis": "context"
+    }
+   ],
+   "overallScore": 0.45,
+   "roomType": "bathroom"
+  },
+  {
+   "roomId": "room-12",
+   "roomName": "Linen Store",
+   "comfortScores": {
+    "thermal": 0.62,
+    "visual": 0.41,
+    "acoustic": 0.67,
+    "spatial": 0.81,
+    "olfactory": 0.65,
+    "tactile": 0.64
+   },
+   "baseScores": {
+    "thermal": 0.62,
+    "visual": 0.4,
+    "acoustic": 0.65,
+    "spatial": 0.86,
+    "olfactory": 0.65,
+    "tactile": 0.64
+   },
+   "adjustments": [
+    {
+     "sense": "acoustic",
+     "delta": 0.02,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "visual",
+     "delta": 0.01,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "spatial",
+     "delta": -0.05,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    }
+   ],
+   "overallScore": 0.51,
+   "roomType": "circulation"
+  },
+  {
+   "roomId": "room-13",
+   "roomName": "Bedroom 3",
+   "comfortScores": {
+    "thermal": 0.85,
+    "visual": 0.63,
+    "acoustic": 0.78,
+    "spatial": 0.81,
+    "olfactory": 0.89,
+    "tactile": 0.76
+   },
+   "baseScores": {
+    "thermal": 0.81,
+    "visual": 0.65,
+    "acoustic": 0.7,
+    "spatial": 0.86,
+    "olfactory": 0.85,
+    "tactile": 0.72
+   },
+   "adjustments": [
+    {
+     "sense": "olfactory",
+     "delta": 0.04,
+     "from": "thermal",
+     "mechanism": "TSV \u2194 ASV association (encode conservatively)",
+     "tier": "verified",
+     "basis": "research"
+    },
+    {
+     "sense": "thermal",
+     "delta": 0.04,
+     "from": "olfactory",
+     "mechanism": "TSV \u2194 ASV association (encode conservatively)",
+     "tier": "verified",
+     "basis": "research"
+    },
+    {
+     "sense": "acoustic",
+     "delta": 0.04,
+     "from": "tactile",
+     "mechanism": "surface absorption controls reverberation",
+     "tier": "inferred",
+     "basis": "physics"
+    },
+    {
+     "sense": "tactile",
+     "delta": 0.04,
+     "from": "acoustic",
+     "mechanism": "surface absorption controls reverberation",
+     "tier": "inferred",
+     "basis": "physics"
+    },
+    {
+     "sense": "acoustic",
+     "delta": 0.04,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "visual",
+     "delta": -0.02,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    },
+    {
+     "sense": "spatial",
+     "delta": -0.05,
+     "from": "personality",
+     "mechanism": "introvert prefers calm",
+     "tier": "inferred",
+     "basis": "personality"
+    }
+   ],
+   "overallScore": 0.71,
+   "roomType": "bedroom"
+  }
+ ]
+}
