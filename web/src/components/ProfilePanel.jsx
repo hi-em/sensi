@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SC } from "../lib/constants.js";
+import SensiAvatar from "./SensiAvatar.jsx";
 import PersonaCard from "./PersonaCard.jsx";
 
 // Slide-in comfort-profile drawer in layout mode — the persona as a companion while
@@ -34,12 +34,7 @@ export default function ProfilePanel({ persona, moodboardUrls = [], open, onClos
   return (
     <div className={"profile-panel" + (open ? " open" : "")}>
       <div className="panel-header">
-        <svg width="16" height="16" viewBox="0 0 32 32" fill="none" style={{ opacity: 0.5 }}>
-          <circle cx="16" cy="16" r="14.5" stroke={SC.thermal} strokeWidth=".8" />
-          <circle cx="16" cy="16" r="9.5" stroke={SC.acoustic} strokeWidth=".8" />
-          <circle cx="16" cy="16" r="4.5" stroke={SC.olfactory} strokeWidth=".8" />
-          <circle cx="16" cy="16" r="1.4" fill="var(--fg)" opacity=".80" />
-        </svg>
+        <SensiAvatar size={16} className="" animate={false} />
         <span className="top-bar-label">comfort profile</span>
         <button className="panel-close" onClick={onClose} aria-label="close profile">×</button>
       </div>
