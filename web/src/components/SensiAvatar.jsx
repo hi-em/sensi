@@ -1,34 +1,20 @@
-// The concentric six-sense ring mark, reused as the brand avatar everywhere.
-// Ring colors come from the sense registry (lib/senses.js) — single source of
-// truth — paired with the fixed radius ladder below. `animate={false}` renders
-// the static mark; strokeWidth / centerR / centerOpacity let callers (e.g. the
-// loading Overlay) match their exact weight without re-drawing the SVG.
-import { SENSES, SC } from "../lib/senses.js";
+// The Sensi mark (Wren's ripple chord), reused as the brand avatar everywhere; the same
+// drawing is the favicon and the app icon. Hues come from the sense registry
+// (lib/senses.js), geometry from ./sensiMark.js. `animate` lets the six sense arcs
+// breathe one after another (the "thinking" pulse); `animate={false}` is the still mark.
+import { SENSES, SC, STATUS } from "../lib/senses.js";
+import { MARK_ARCS, MARK_RIBBONS } from "./sensiMark.js";
 
-const RADII = [14.5, 12, 9.5, 7, 4.5, 2]; // outer → inner, one per sense
-
-export default function SensiAvatar({
-  size = 28,
-  className = "sensi-avatar",
-  animate = true,
-  strokeWidth = 0.8,
-  centerR = 1.2,
-  centerOpacity = 0.8,
-}) {
+export default function SensiAvatar({ size = 28, className = "sensi-avatar", animate = true }) {
   return (
-    <svg className={className} width={size} height={size} viewBox="0 0 32 32" fill="none">
-      {RADII.map((r, i) => (
-        <circle
-          key={i}
-          cx="16"
-          cy="16"
-          r={r}
-          stroke={SC[SENSES[i]]}
-          strokeWidth={strokeWidth}
-          style={animate ? { animation: `srg${i} 3s ease-in-out infinite`, animationDelay: `${i * 0.5}s` } : undefined}
-        />
+    <svg className={`sensi-mark ${className}`.trim()} width={size} height={size} viewBox="0 0 512 512" fill="none" aria-hidden="true">
+      {MARK_RIBBONS.map((r) => (
+        <path key={r.d} d={r.d} fill={SC[r.from]} fillOpacity={0.6} stroke={r.lowers ? STATUS.fail : STATUS.pass} strokeWidth={9} />
       ))}
-      <circle cx="16" cy="16" r={centerR} fill="var(--fg)" opacity={centerOpacity} />
+      {SENSES.map((s, i) => (
+        <path key={s} d={MARK_ARCS[s]} stroke={SC[s]} strokeWidth={44} strokeLinecap="round"
+          style={animate ? { animation: "smark 3s ease-in-out infinite", animationDelay: `${i * 0.5}s` } : undefined} />
+      ))}
     </svg>
   );
 }

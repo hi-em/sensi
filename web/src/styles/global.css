@@ -63,12 +63,8 @@ body.is-still { animation: none; }
   0%,100% { transform:scaleX(.2); opacity:.30; }
   50%      { transform:scaleX(1);  opacity:.60; }
 }
-@keyframes srg0 { 0%,100%{opacity:.14} 50%{opacity:.55} }
-@keyframes srg1 { 0%,100%{opacity:.14} 50%{opacity:.55} }
-@keyframes srg2 { 0%,100%{opacity:.14} 50%{opacity:.55} }
-@keyframes srg3 { 0%,100%{opacity:.14} 50%{opacity:.55} }
-@keyframes srg4 { 0%,100%{opacity:.14} 50%{opacity:.55} }
-@keyframes srg5 { 0%,100%{opacity:.14} 50%{opacity:.55} }
+@keyframes smark { 0%,100%{opacity:.45} 50%{opacity:1} }   /* the mark's six arcs, one after another */
+@media (prefers-reduced-motion: reduce) { .sensi-mark path { animation: none !important; } }
 
 /* ── sense mixer (the persistent sense-layer rail) ── */
 .sense-mixer {

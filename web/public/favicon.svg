@@ -1,24 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
-  <!-- Sensi brand mark: the concentric six-sense ring (mirrors SensiAvatar.jsx).
-       Rings outer→inner = thermal, visual, acoustic, spatial, olfactory, tactile.
-       Tuned for a 16px tab: dark backing disc, slightly heavier strokes, soft glow. -->
-  <defs>
-    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="0.7" result="b" />
-      <feMerge>
-        <feMergeNode in="b" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
-  </defs>
-  <circle cx="16" cy="16" r="15.5" fill="#0D0D0D" />
-  <g fill="none" stroke-width="1.15" filter="url(#glow)">
-    <circle cx="16" cy="16" r="14.5" stroke="#E8836A" />
-    <circle cx="16" cy="16" r="12"   stroke="#D4B96A" />
-    <circle cx="16" cy="16" r="9.5"  stroke="#9B8FD4" />
-    <circle cx="16" cy="16" r="7"    stroke="#6AB8C8" />
-    <circle cx="16" cy="16" r="4.5"  stroke="#8BB88A" />
-    <circle cx="16" cy="16" r="2"    stroke="#C4A882" />
-  </g>
-  <circle cx="16" cy="16" r="1.2" fill="#FFF4E6" opacity="0.85" />
-</svg>
+<!-- Sensi mark: Wren's real ripple chord (the scoring model's own sense→sense adjustments in
+     web/public/demo-home.json, laid out as web/src/marks/Chord.jsx lays them out). Arcs = the six
+     senses (△ thermal top, then ○ ∿ □ ≈ ∶ clockwise); ribbons = ripples that fired in 3+ rooms,
+     edge red = lowers, green = raises. Small optical size (16-48 px): the same seven ribbons, bolder. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0D0D0D"/><path d="M126.89,366.6 A170,170 0 0,1 106.58,337.09 Q256,256 233.63,87.48 A170,170 0 0,1 269.44,86.53 Q256,256 126.89,366.6 Z" fill="#8BB88A" fill-opacity="0.6" stroke="#3FB97A" stroke-width="9"/><path d="M420.3,299.66 A170,170 0 0,1 407.5,333.12 Q256,256 269.44,86.53 A170,170 0 0,1 304.66,93.11 Q256,256 420.3,299.66 Z" fill="#9B8FD4" fill-opacity="0.6" stroke="#E0524A" stroke-width="9"/><path d="M425.8,264.26 A170,170 0 0,1 420.3,299.66 Q256,256 393.45,155.96 A170,170 0 0,1 411.36,186.98 Q256,256 425.8,264.26 Z" fill="#9B8FD4" fill-opacity="0.6" stroke="#E0524A" stroke-width="9"/><path d="M375.96,376.46 A170,170 0 0,1 348.05,398.92 Q256,256 273.91,425.05 A170,170 0 0,1 238.09,425.05 Q256,256 375.96,376.46 Z" fill="#9B8FD4" fill-opacity="0.6" stroke="#E0524A" stroke-width="9"/><path d="M207.34,93.11 A170,170 0 0,1 233.63,87.48 Q256,256 106.58,337.09 A170,170 0 0,1 95.67,312.51 Q256,256 207.34,93.11 Z" fill="#E8836A" fill-opacity="0.6" stroke="#3FB97A" stroke-width="9"/><path d="M97.22,195.28 A170,170 0 0,1 108.78,171 Q256,256 393.45,356.04 A170,170 0 0,1 375.96,376.46 Q256,256 97.22,195.28 Z" fill="#C4A882" fill-opacity="0.6" stroke="#3FB97A" stroke-width="9"/><path d="M407.5,333.12 A170,170 0 0,1 393.45,356.04 Q256,256 108.78,171 A170,170 0 0,1 124.02,148.85 Q256,256 407.5,333.12 Z" fill="#9B8FD4" fill-opacity="0.6" stroke="#3FB97A" stroke-width="9"/><path d="M199.9,68.2 A196,196 0 0,1 312.1,68.2" stroke="#E8836A" stroke-width="44" stroke-linecap="round" fill="none"/><path d="M414.47,140.66 A196,196 0 0,1 435.12,176.43" stroke="#D4B96A" stroke-width="44" stroke-linecap="round" fill="none"/><path d="M451.77,265.52 A196,196 0 0,1 362.13,420.78" stroke="#9B8FD4" stroke-width="44" stroke-linecap="round" fill="none"/><path d="M276.65,450.91 A196,196 0 0,1 235.35,450.91" stroke="#6AB8C8" stroke-width="44" stroke-linecap="round" fill="none"/><path d="M107.15,383.51 A196,196 0 0,1 71.15,321.16" stroke="#8BB88A" stroke-width="44" stroke-linecap="round" fill="none"/><path d="M72.93,185.99 A196,196 0 0,1 103.83,132.46" stroke="#C4A882" stroke-width="44" stroke-linecap="round" fill="none"/></svg>

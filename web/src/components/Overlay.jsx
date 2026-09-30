@@ -19,7 +19,7 @@ export default function Overlay({ message }) {
 
   return (
     <div id="overlay" className={visible ? "visible" : ""}>
-      <SensiAvatar size={52} className="" strokeWidth={0.9} centerR={1.4} centerOpacity={0.85} />
+      <SensiAvatar size={52} className="" />
       <p className="overlay-msg">{phrases[idx] || "starting sensi..."}</p>
     </div>
   );
